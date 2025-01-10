@@ -1,0 +1,39 @@
+{%  extends "base.html" %}
+{%  block title %} Home {%  endblock %}
+{%  block content %}
+
+<header>
+    <h1>Welcome to the Poth Pirate Sports Stat Tracker!</h1>
+    <p>Track teams, players, and game stats in one place!</p>
+</header>
+
+<main>
+    <h2>Teams</h2>
+    {% if teams %}
+        <ul>
+            {% for team in teams %}
+            <li>
+                <strong>{{ team.name }}</strong> (Sport: {{ team.sport }})
+                <a href="{{ url_for('teams.team', team_id=team.id) }}">View Team</a>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No teams have been added yet.</p>
+    {% endif %}
+
+    <h2>Players</h2>
+    {% if players %}
+        <ul>
+            {% for player in players %}
+            <li>
+                <strong>{{ player.first_name }} {{ player.last_name }}</strong> (Position: {{ player.position }})
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No players have been added yet.</p>
+    {% endif %}
+</main>
+
+{%  endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %} Home {% endblock %}
+{% block content %}
+
+<header class="bg-dark-body">
+    <div>
+        <img src="{{ url_for('schools.static', filename='images/all_schools_banner.webp') }}"
+                                                     alt="School Banner"
+                                                     class="img-fluid"
+                                                     style="height: 170px; width: 1900px; object-fit: cover;">
+    </div>
+</header>
+
+<main class="bg-dark-body" style="padding-bottom: 40px; padding-top: 10px;">
+    {% if schools %}
+    <div class="container" style="background-color: dimgrey; padding: 5px; padding-bottom: 20px">
+        <!-- Conference Selector Tabs -->
+        <ul class="nav nav-tabs bordered-tabs" id="conferenceTabs" role="tablist">
+            {% set conferences = ['1A Division 1', '1A Division 2', '2A Division 1', '2A Division 2', '3A Division
+            1', '3A Division 2', '4A Division 1', '4A Division 2', '5A Division 1', '5A Division 2', '6A'] %}
+            {% for conference_index, conference in enumerate(conferences, start=1) %}
+            <li class="nav-item" role="presentation" style="width: 200px">
+                <button class="nav-link py-1 px-lg-5 nav-link-color {% if loop.first %}active{% endif %}"
+                        id="conference{{ conference_index }}-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#conference{{ conference_index }}"
+                        type="button" role="tab"
+                        aria-controls="conference{{ conference_index }}"
+                        aria-selected="{{ 'true' if loop.first else 'false' }}">
+                    {{ conference }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Conference Content -->
+        <div class="tab-content hidden-tabs mt-3" id="conferenceTabsContent">
+            {% for conference_index, conference in enumerate(conferences, start=1) %}
+            <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                 id="conference{{ conference_index }}"
+                 role="tabpanel"
+                 aria-labelledby="conference{{ conference_index }}-tab">
+
+                <!-- Region Selector Tabs -->
+                <ul class="nav nav-pills mt-3" id="regionTabs{{ conference_index }}" role="tablist">
+                    {% for region in range(1, 5) %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link nav-link-color {% if region == 1 %}active{% endif %}"
+                                id="region{{ conference_index }}-{{ region }}-tab"
+                                data-bs-toggle="tab"
+                                data-bs-target="#region{{ conference_index }}-{{ region }}"
+                                type="button" role="tab"
+                                aria-controls="region{{ conference_index }}-{{ region }}"
+                                aria-selected="{{ 'true' if region == 1 else 'false' }}">
+                            Region {{ region }}
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <hr class="border-2 border-top border-dark my-3">
+
+                <!-- Region Content -->
+                <div class="tab-content mt-3" id="regionTabsContent{{ conference_index }}">
+                    {% for region in range(1, 5) %}
+                    <div class="tab-pane fade {% if region == 1 %}show active{% endif %}"
+                         id="region{{ conference_index }}-{{ region }}"
+                         role="tabpanel"
+                         aria-labelledby="region{{ conference_index }}-{{ region }}-tab">
+
+                        <!-- Districts within the Current Region -->
+                        {% set district_start = (region - 1) * 4 + 1 %}
+                        {% set district_end = district_start + 4 %}
+                        {% for district in range(district_start, district_end) %}
+                        <h4 class="mt-3"><u>District {{ district }}</u></h4>
+                        <hr class="border-2 border-top text-dark my-3">
+
+                        <div class="row row-cols-1 row-cols-md-4 g-4">
+                            {% for school in schools %}
+                                {% if school.uil_conference == conference
+                                      and school.uil_region == "Region " ~ region
+                                      and school.uil_district == "District " ~ district %}
+                                <div class="col">
+                                    <div class="card h-100 d-flex flex-column shadow h-100"
+                                         style="background-color: darkgrey">
+
+                                        <!-- Card Header: Image + School Name -->
+                                        <div class="card-header h-auto">
+                                            <div class="row g-0 align-items-center">
+                                                <!-- Image on the left -->
+                                                <div class="col-auto">
+                                                    <img src="{{ url_for('schools.static', filename='images/' ~ school.school_name ~ '.webp') }}"
+                                                         alt="School Logo"
+                                                         class="img-fluid rounded-start"
+                                                         style="width: 75px; height: 75px; object-fit: cover;">
+
+                                                </div>
+                                                <!-- School name/mascot on the right -->
+                                                <div class="col ms-2">
+                                                    <h5 class="mb-0">{{ school.school_name }} {{ school.school_mascot }}</h5>
+                                                    <p class="mb-0" style="color: dimgray"><em>{{ school.city }}, {{
+                                                            school.state }}</em>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Card Body: Conference, Teams, etc. -->
+                                        <div class="card-body" style="text-align: center">
+                                            <a href="{{ url_for('schools.school', school_id=school.id) }}"
+                                               class="btn btn-outline-dark btn-sm">View
+                                                School</a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+        <p>No schools available.</p>
+    {% endif %}
+</main>
+
+{% endblock content %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %} Home {% endblock %}
+{% block content %}
+
+<header class="bg-dark-body">
+    <div>
+        <img src="{{ url_for('schools.static', filename='images/all_schools_banner.webp') }}"
+             alt="School Banner"
+             class="img-fluid"
+             style="height: 170px; width: 1900px; object-fit: cover;">
+    </div>
+</header>
+
+<main class="bg-dark-body" style="padding-bottom: 40px; padding-top: 10px;">
+    <div class="container" style="background-color: dimgrey; padding: 5px; padding-bottom: 20px;">
+        <table class="table table-dark table-striped sortable">
+            <thead>
+                <tr>
+                    <th scope="col">Thumbnail</th>
+                    <th scope="col" onclick="sortTable(1, this)">First Name <span class="sort-arrow">&#9650;</span></th>
+                    <th scope="col" onclick="sortTable(2, this)">Last Name <span class="sort-arrow">&#9650;</span></th>
+                    <th scope="col" onclick="sortTable(3, this)">Position <span class="sort-arrow">&#9650;</span></th>
+                    <th scope="col" class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in team.players %}
+                <tr>
+                    <td>
+                        <img src="https://ui-avatars.com/api/?name={{ player.first_name }}+{{ player.last_name }}&background=random&size=50"
+                             alt="{{ player.first_name }} {{ player.last_name }}"
+                             class="img-thumbnail"
+                             style="width: 50px; height: 50px; object-fit: cover;">
+                    </td>
+                    <td>{{ player.first_name }}</td>
+                    <td>{{ player.last_name }}</td>
+                    <td>{{ player.position }}</td>
+                    <td class="text-end">
+                        <a href="{{ url_for('players.player_stats', player_id=player.id) }}" class="btn btn-sm btn-outline-light">View Stats</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<script>
+function sortTable(columnIndex, headerElement) {
+    const table = document.querySelector(".sortable tbody");
+    const rows = Array.from(table.rows);
+    const isAscending = headerElement.getAttribute("data-sort-order") === "asc";
+
+    rows.sort((a, b) => {
+        const aText = a.cells[columnIndex].innerText.toLowerCase();
+        const bText = b.cells[columnIndex].innerText.toLowerCase();
+        return isAscending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+    });
+
+    rows.forEach(row => table.appendChild(row));
+
+    // Update sort order and arrow
+    const allHeaders = document.querySelectorAll(".sortable thead th");
+    allHeaders.forEach(header => {
+        const arrow = header.querySelector(".sort-arrow");
+        if (arrow) {
+            arrow.innerHTML = "&#9650;"; // Reset all arrows to ascending
+        }
+        header.removeAttribute("data-sort-order");
+    });
+
+    headerElement.setAttribute("data-sort-order", isAscending ? "desc" : "asc");
+    const arrow = headerElement.querySelector(".sort-arrow");
+    arrow.innerHTML = isAscending ? "&#9660;" : "&#9650;"; // Update arrow based on sort order
+}
+</script>
+
+{% endblock content %}

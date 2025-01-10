@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %} Team Schedule {% endblock %}
+{% block content %}
+
+<header class="bg-dark-body">
+    <div>
+        <img src="{{ url_for('schools.static', filename='images/all_schools_banner.webp') }}"
+             alt="School Banner"
+             class="img-fluid"
+             style="height: 170px; width: 1900px; object-fit: cover;">
+    </div>
+</header>
+
+<main class="bg-dark-body d-flex flex-column" style="min-height: 100vh; padding-top: 10px;">
+    <div class="container flex-grow-1" style="background-color: dimgrey; padding: 5px; padding-bottom: 20px;">
+        <table class="table table-dark table-striped">
+            <thead>
+                <tr>
+                    <th>Team</th>
+                    <th>Points</th>
+                    {% if box_scores|length > 0 %}
+                        {% for stat in box_scores[0].stats.keys() %}
+                            <th>{{ stat }}</th>
+                        {% endfor %}
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for box_score in box_scores %}
+                <tr>
+                    <td>{{ box_score.team.school.school_name }} ({{ box_score.team.grade_level }} {{ box_score.team.gender }})</td>
+                    <td>{{ box_score.points }}</td>
+                    {% for stat_value in box_score.stats.values() %}
+                        <td>{{ stat_value }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</main>
+
+{% endblock content %}

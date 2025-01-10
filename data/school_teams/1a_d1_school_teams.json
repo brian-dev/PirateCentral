@@ -1,0 +1,166 @@
+{
+  "Booker": {
+    "Varsity": {
+      "Boys": [
+      "Baseball",
+      "Basketball",
+      "Cross Country",
+      "Football",
+      "Soccer",
+      "Track and Field"
+    ],
+      "Girls": [
+        "Basketball",
+        "Golf",
+        "Soccer",
+        "Softball",
+        "Track and Field",
+        "Volleyball"
+      ]
+    },
+    "JV": {
+      "Boys": [
+        "Baseball",
+        "Basketball",
+        "Football"
+      ],
+      "Girls": [
+        "Basketball",
+        "Softball"
+      ]
+    }
+  },
+  "Boys Ranch": {
+    "Varsity": {
+      "Boys": [
+      "Baseball",
+      "Basketball",
+      "Cross Country",
+      "Football",
+      "Soccer",
+      "Track and Field",
+      "Wrestling"
+    ],
+      "Girls": [
+        "Basketball",
+        "Cross Country",
+        "Soccer",
+        "Softball",
+        "Track and Field",
+        "Volleyball",
+        "Wrestling"
+      ]
+    },
+    "JV": {
+      "Boys": [
+        "Baseball",
+        "Basketball",
+        "Football"
+      ],
+      "Girls": [
+        "Basketball"
+      ]
+    },
+    "Freshman": {
+      "Boys": ["Baseball"]
+    }
+  },
+  "Claude": {
+    "Varsity": {
+      "Boys": [
+      "Baseball",
+      "Basketball",
+      "Cross Country",
+      "Football",
+      "Soccer",
+      "Tennis",
+      "Wrestling"
+    ],
+      "Girls": [
+        "Basketball",
+        "Cross Country",
+        "Soccer",
+        "Softball",
+        "Tennis",
+        "Track and Field",
+        "Volleyball"
+      ]
+    },
+    "JV": {
+      "Boys": [
+        "Baseball",
+        "Basketball",
+        "Football"
+      ],
+      "Girls": [
+        "Basketball",
+        "Softball"
+      ]
+    },
+    "Freshman": {
+      "Boys": [
+        "Basketball",
+        "Football"
+      ],
+      "Girls": ["Basketball"]
+    }
+  },
+  "White Deer": {
+    "Varsity": {
+      "Boys": [
+      "Baseball",
+      "Basketball",
+      "Cross Country",
+      "Football",
+      "Soccer",
+      "Wrestling"
+    ],
+      "Girls": [
+        "Basketball",
+        "Cross Country",
+        "Soccer",
+        "Softball",
+        "Track and Field",
+        "Volleyball"
+      ]
+    },
+    "JV": {
+      "Boys": [
+        "Basketball",
+        "Football"
+      ],
+      "Girls": [
+        "Basketball"
+      ]
+    },
+    "Freshman": {
+      "Boys": [
+        "Basketball"
+      ]
+    }
+  },
+  "Wildorado": {
+    "Varsity": {
+      "Boys": [
+      "Baseball",
+      "Basketball",
+      "Football",
+      "Golf",
+      "Soccer",
+      "Track and Field"
+    ],
+      "Girls": [
+        "Basketball",
+        "Soccer",
+        "Softball",
+        "Track and Field",
+        "Volleyball"
+      ]
+    },
+    "JV": {
+      "Boys": [
+        "Basketball"
+      ]
+    }
+  }
+}

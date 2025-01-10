@@ -1,0 +1,33 @@
+.hidden-tabs {
+  display: none;  /* or visibility: hidden; if you prefer spacing reserved */
+}
+
+.bordered-tabs .nav-item {
+  border: 1px solid #ccc; /* Example: light gray border */
+  margin-right: 2px;      /* Add a little spacing between items */
+  border-radius: 4px;     /* Optional: rounded corners */
+}
+
+.bordered-tabs .nav-item:not(:last-child) {
+  margin-right: 3px;
+}
+
+.nav-link-color {
+  color: lightgray !important;
+  width: 200px
+}
+
+.nav-link-color.active {
+  background-color: lightgray !important;
+  color: #333 !important;
+  width: 200px
+}
+
+.nav-link-color .nav-item:not(:last-child) {
+  width: 200px
+}
+
+.bg-dark-body {
+  background-color: #333333;
+  color: lightgray;
+}

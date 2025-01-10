@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from 'bootstrap5/form.html' import render_form %}
+
+{% block title %}Add New Team{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+                <div class="card mx-auto">
+                    <div class="card-header text-center">
+                        <h1>Add a New Team</h1>
+                    </div>
+                    <div class="card-body">
+                        {{ render_form(form) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

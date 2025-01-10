@@ -1,0 +1,79 @@
+{%  extends "base.html" %}
+{%  block title %} Add Stats {%  endblock %}
+{%  block content %}
+
+<header>
+    <h1>Add New Player Stats</h1>
+</header>
+
+<main>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <ul class="flash-messages">
+            {% for category, message in messages %}
+            <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% endwith %}
+
+    <h3>General Stats</h3>
+    <form method="POST">
+        <label for="player_id">Player:</label>
+        <select name="player_id" required>
+            {% for player in players %}
+            <option value="{{ player.id }}">{{ player.name }} ({{ player.position }})</option>
+            {% endfor %}
+        </select><br>
+
+        <label for="game_id">Game:</label>
+        <select name="game_id" required>
+            {% for game in games %}
+            <option value="{{ game.id }}">{{ game.date }}</option>
+            {% endfor %}
+        </select><br>
+
+        <!-- General stats -->
+        <label>Touchdowns:</label><input type="number" name="touchdowns"><br>
+        <label>Interceptions:</label><input type="number" name="interceptions"><br>
+        <label>Fumbles:</label><input type="number" name="fumbles"><br>
+        <label>Fumble Recoveries:</label><input type="number" name="fumble_recoveries"><br>
+        <label>Kick Return Yards:</label><input type="number" name="kick_return_yards"><br>
+        <label>Punt Return Yards:</label><input type="number" name="punt_return_yards"><br>
+
+
+        <!-- QB stats -->
+        <h3>Quarterback Stats</h3>
+        <label>Passing Yards:</label><input type="number" name="passing_yards"><br>
+        <label>Completions:</label><input type="number" name="completions"><br>
+        <label>Attempts:</label><input type="number" name="attempts"><br>
+
+        <!-- RB/WR stats -->
+        <h3>Running Back/Wide Receiver Stats</h3>
+        <label>Rushing Yards:</label><input type="number" name="rushing_yards"><br>
+        <label>Receiving Yards:</label><input type="number" name="receiving_yards"><br>
+        <label>Receptions:</label><input type="number" name="receptions"><br>
+
+        <!-- Defensive stats -->
+        <h3>Defensive Stats</h3>
+        <label>Tackles:</label><input type="number" name="tackles"><br>
+        <label>Sacks:</label><input type="number" name="sacks"><br>
+        <label>Interceptions:</label><input type="number" name="interceptions_defense"><br>
+
+        <!-- Kicker stats -->
+        <h3>Kicker Stats</h3>
+        <label>Field Goals Made:</label><input type="number" name="field_goals_made"><br>
+        <label>Field Goals Attempted:</label><input type="number" name="field_goals_attempted"><br>
+        <label>Extra Points Made:</label><input type="number" name="extra_points"><br>
+        <label>Extra Points Attempted:</label><input type="number" name="extra_points_attempted"><br>
+        <label>Field Goals Yards:</label><input type="number" name="field_goal_yards"><br>
+        <label>Punt Yards:</label><input type="number" name="punt_yards"><br>
+        <label>Number of Punts:</label><input type="number" name="number_of_punts"><br>
+
+
+        <button type="submit">Submit Stats</button>
+    </form>
+</main>
+
+{%  endblock %}

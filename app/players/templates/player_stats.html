@@ -1,0 +1,69 @@
+{%  extends "base.html" %}
+{%  block title %} {{ player.name }}'s Stats {%  endblock %}
+{%  block content %}
+
+<header>
+    <h1>{{ player.name }}'s Stats</h1>
+</header>
+
+<main>
+    <h2>Stats:</h2>
+    <table>
+        <tr>
+            <th>Game</th>
+            <th>Touchdowns</th>
+            <th>Passing Yards</th>
+            <th>Rushing Yards</th>
+            <th>Receiving Yards</th>
+            <th>Tackles</th>
+            <th>Sacks</th>
+            <th>Field Goals</th>
+            <th>Interceptions</th>
+            <th>Completions</th>
+            <th>Attempts</th>
+            <th>Receptions</th>
+            <th>Defensive Interceptions</th>
+            <th>Fumbles</th>
+            <th>Fumble Recoveries</th>
+            <th>Field Goals Made</th>
+            <th>Field Goals Attempted</th>
+            <th>Field Goal Yards</th>
+            <th>Extra Points Made</th>
+            <th>Extra Points Attempted</th>
+            <th>Punt Yards</th>
+            <th>Punts</th>
+            <th>Kick Return Yards</th>
+            <th>Punt Return Yards</th>
+        </tr>
+        {% for stat in stats %}
+        <tr>
+            <td>{{ stat.game_id }}</td>
+            <td>{{ stat.touchdowns }}</td>
+            <td>{{ stat.passing_yards }}</td>
+            <td>{{ stat.rushing_yards }}</td>
+            <td>{{ stat.receiving_yards }}</td>
+            <td>{{ stat.tackles }}</td>
+            <td>{{ stat.sacks }}</td>
+            <td>{{ stat.field_goals_made }}</td>
+            <td>{{ stat.interceptions }}</td>
+            <td>{{ stat.completions }}</td>
+            <td>{{ stat.attempts }}</td>
+            <td>{{ stat.receptions }}</td>
+            <td>{{ stat.interceptions_defense }}</td>
+            <td>{{ stat.fumbles }}</td>
+            <td>{{ stat.fumble_recoveries }}</td>
+            <td>{{ stat.field_goals_made }}</td>
+            <td>{{ stat.field_goals_attempted }}</td>
+            <td>{{ stat.field_goal_yards }}</td>
+            <td>{{ stat.extra_points_made }}</td>
+            <td>{{ stat.extra_points_attempted }}</td>
+            <td>{{ stat.punt_yards }}</td>
+            <td>{{ stat.number_of_punts }}</td>
+            <td>{{ stat.kick_return_yards }}</td>
+            <td>{{ stat.punt_return_yards }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</main>
+
+{% endblock %}

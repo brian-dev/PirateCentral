@@ -1,0 +1,34 @@
+{%  extends "base.html" %}
+{%  block title %} Home {%  endblock %}
+{%  block content %}
+
+<header>
+    <h1>{{ team.name }}</h1>
+    <p>Details about the team</p>
+</header>
+
+<main>
+    <h2>Team Information</h2>
+    <ul>
+        <li><strong>Name:</strong>{{ team.name }}</li>
+        <li><strong>Sport:</strong> {{ team.sport }}</li>
+        <li><strong>Team Grade Level:</strong> {{ team.grade_level }}</li>
+    </ul>
+
+    <h2>Players</h2>
+    {% if players %}
+        <ul>
+            {% for player in players %}
+            <li>
+                <strong>{{ player.first_name }} {{ player.last_name }}</strong> - Position: {{ player.position }}
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No players have been added to this team yet.</p>
+    {% endif %}
+
+    <a href="{{ url_for('teams.all_teams') }}">Back to Teams List</a>
+</main>
+
+{% endblock content %}
