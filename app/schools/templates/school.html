@@ -59,12 +59,13 @@
                                 <li class="list-group-item d-flex align-items-center justify-content-between" style="background-color: lightgray;">
                                     <!-- Image -->
                                     <div class="d-flex align-items-center">
-                                        <img src="{{ url_for('teams.static', filename='images/' ~ team.sport|lower ~ '.webp') }}"
+                                        <img src="{{ url_for('teams.static', filename='images/' ~ team.sport
+                                        .name|lower ~ '.webp') }}"
                                              alt="{{ team.sport }}"
                                              class="img-fluid rounded me-3"
                                              style="width: 50px; height: 50px; object-fit: cover;">
                                         <!-- Sport Name -->
-                                        <span class="fw-bold">{{ team.sport }}</span>
+                                        <span class="fw-bold">{{ team.sport.name }}</span>
                                     </div>
 
                                     <!-- Links -->

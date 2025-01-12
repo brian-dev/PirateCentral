@@ -6,8 +6,16 @@ from faker import Faker
 
 from run import app  # Import your Flask app instance
 from app import db
-from app.models import School, Team, Game, Player, BoxScore, Sport
+from app.models import School, Team, Game, Player, BoxScore, Sport, Stat, PlayerQuarterStats
 
+
+def reset_database():
+    """Drops and recreates the database schema."""
+    with app.app_context():  # Push the app context
+        db.drop_all()
+        print("All tables dropped successfully.")
+        db.create_all()
+        print("All tables created successfully.")
 
 def load_schools_from_directory(data_dir):
     """
@@ -35,6 +43,7 @@ def seed_teams_for_existing_schools():
     Reads multiple JSON files from the 'data/school_teams' directory and
     seeds/upserts teams for the schools in your existing database.
     """
+    print("Seeding teams for existing schools...")
     directory_path = 'data/school_teams'
 
     for filename in os.listdir(directory_path):
@@ -52,21 +61,28 @@ def seed_teams_for_existing_schools():
 
                 for level, gender_dict in levels_dict.items():
                     for gender, sports in gender_dict.items():
-                        for sport in sports:
-                            existing_team = Team.query.filter_by(
-                                grade_level=level,
-                                gender=gender,
-                                sport=sport,
-                                school_id=school.id
+                        for sport_name in sports:
+                            # Check if the sport exists
+                            sport = Sport.query.filter_by(name=sport_name).first()
+                            if not sport:
+                                print(f"Sport not found in DB, skipping: {sport_name}")
+                                continue
+
+                            # Use `.has()` for filtering by relationships
+                            existing_team = Team.query.filter(
+                                Team.grade_level == level,
+                                Team.gender == gender,
+                                Team.sport == sport,
+                                Team.school_id == school.id
                             ).first()
 
                             if existing_team:
-                                print(f"Team already exists: {school_name} - {level} {gender} - {sport}")
+                                print(f"Team already exists: {school_name} - {level} {gender} - {sport_name}")
                             else:
                                 new_team = Team(
                                     grade_level=level,
                                     gender=gender,
-                                    sport=sport,
+                                    sport=sport,  # Use the sport object here
                                     school_id=school.id
                                 )
                                 db.session.add(new_team)
@@ -88,6 +104,12 @@ def seed_sports_and_stats():
         "Cross Country": ["Finish Time", "Placement"],
         "Golf": ["Strokes", "Par", "Birdies", "Eagles"],
         "Wrestling": ["Takedowns", "Pins", "Escapes"],
+        "Soccer": ["Goals", "Assists", "Shots", "Turnovers", "Passes Completed",
+                   "Passes Attempted", "Fouls", "Yellow Cards", "Red Cards", "Offsides",
+                   "Corner Kicks", "Saves"],
+        "Track and Field": ["100m", "Hurdles", "Shotput", "Pole Vault"],
+        "Volleyball": ["Hits", "Spikes", "Aces"],
+        "Tennis": ["Aces", "Hits", "Misses"]
     }
 
     for sport_name, stats in sports_stats.items():
@@ -98,7 +120,7 @@ def seed_sports_and_stats():
             continue
 
         # Create and add the new sport
-        new_sport = Sport(name=sport_name, stats=stats)
+        new_sport = Sport(name=sport_name, stats_definitions=stats)
         db.session.add(new_sport)
 
     db.session.commit()
@@ -125,9 +147,9 @@ def generate_mock_schedule():
     default_season_start = datetime.now() + timedelta(days=7)
     default_season_end = default_season_start + timedelta(weeks=16)
 
-    for team in teams:
-        sport = team.sport
-        sport_stats = {sport.name: sport.stats for sport in Sport.query.all()}
+    for home_team in teams:
+        sport = home_team.sport
+        sport_stats = {sport.name: sport.stats_definitions for sport in Sport.query.all()}
         sport_dates = season_dates.get(sport, {"start": default_season_start, "end": default_season_end})
         season_start = sport_dates["start"]
         season_end = sport_dates["end"]
@@ -137,50 +159,52 @@ def generate_mock_schedule():
             continue
 
         district_teams = Team.query.filter(
-            Team.school_id != team.school_id,
-            Team.grade_level == team.grade_level,
-            Team.gender == team.gender,
-            Team.sport == team.sport
+            Team.school_id != home_team.school_id,
+            Team.grade_level == home_team.grade_level,
+            Team.gender == home_team.gender,
+            Team.sport == home_team.sport
         ).all()
 
-        for opponent in district_teams:
+        for away_team in district_teams:
             for is_home in [True, False]:
                 game_date = season_start + timedelta(days=randint(0, (season_end - season_start).days))
-                team_score = randint(40, 100)
-                opponent_score = randint(40, 100)
+                home_team_score = randint(40, 100)
+                away_team_score = randint(40, 100)
 
                 existing_game = Game.query.filter_by(
-                    team_id=team.id if is_home else opponent.id,
-                    opponent_id=opponent.id if is_home else team.id,
+                    home_team_id=home_team.id if is_home else away_team.id,
+                    away_team_id=away_team.id if is_home else home_team.id,
                     date=game_date
                 ).first()
 
                 if not existing_game:
                     new_game = Game(
                         date=game_date,
-                        team_id=team.id if is_home else opponent.id,
-                        opponent_id=opponent.id if is_home else team.id,
-                        score_team=team_score,
-                        score_opponent=opponent_score
+                        home_team_id=home_team.id if is_home else away_team.id,
+                        away_team_id=away_team.id if is_home else home_team.id,
+                        score_home=home_team_score,
+                        score_away=away_team_score,
                     )
                     db.session.add(new_game)
                     db.session.flush()
 
                     # Generate box scores with sport-specific stats
-                    box_score_team = BoxScore(
+                    box_score_home_team = BoxScore(
                         game_id=new_game.id,
-                        team_id=team.id,
-                        points=team_score,
-                        stats={stat: randint(1, 10) for stat in sport_stats},
+                        home_team_id=home_team.id,
+                        away_team_id=away_team.id,
+                        points=home_team_score,
+                        stat_data={stat: randint(1, 10) for stat in sport_stats},
                     )
-                    box_score_opponent = BoxScore(
+                    box_score_away_team = BoxScore(
                         game_id=new_game.id,
-                        team_id=opponent.id,
-                        points=opponent_score,
-                        stats={stat: randint(1, 10) for stat in sport_stats},
+                        away_team_id=home_team.id,
+                        home_team_id=away_team.id,
+                        points=away_team_score,
+                        stat_data={stat: randint(1, 10) for stat in sport_stats},
                     )
-                    db.session.add(box_score_team)
-                    db.session.add(box_score_opponent)
+                    db.session.add(box_score_home_team)
+                    db.session.add(box_score_away_team)
 
     db.session.commit()
     print("Mock schedules and box scores generated for all teams.")
@@ -192,6 +216,7 @@ def generate_players_for_teams():
     """
     print("Generating players...")
     fake = Faker()
+
     sport_positions = {
         "Basketball": {"positions": ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"],
                        "average_per_position": 2},
@@ -212,9 +237,10 @@ def generate_players_for_teams():
     teams = Team.query.all()
 
     for team in teams:
-        print(f"Generating players for team: {team.sport} ({team.grade_level} {team.gender})")
+        print(f"Generating players for team: {team.sport.name} ({team.grade_level} {team.gender})")
 
-        sport_data = sport_positions.get(team.sport, None)
+        # Retrieve sport information
+        sport_data = sport_positions.get(team.sport.name, None)
 
         if sport_data:
             positions = sport_data["positions"]
@@ -243,19 +269,83 @@ def generate_players_for_teams():
             if existing_player:
                 continue
 
+            # Create a new player with the correct sport_id
             player = Player(
                 first_name=first_name,
                 last_name=last_name,
                 position=position,
+                sport_id=team.sport.id  # Assign the sport_id from the team's sport
             )
             db.session.add(player)
             db.session.flush()
 
+            # Associate the player with the team
             team.players.append(player)
 
         db.session.commit()
 
     print("All players generated and added to the database.")
+
+def seed_stats():
+    """
+    Seed the database with example stats for players in each game.
+    """
+    print("Seeding stats...")
+    games = Game.query.all()
+    players = Player.query.all()
+
+    for game in games:
+        for player in players:
+            # Create a stat object with randomized values for demonstration
+            stat = Stat(
+                player_id=player.id,
+                game_id=game.id,
+                stat_data={
+                    "points": randint(0, 30),
+                    "assists": randint(0, 10),
+                    "rebounds": randint(0, 15)
+                }
+            )
+            db.session.add(stat)
+
+    db.session.commit()
+    print("Stats seeded successfully.")
+
+
+def seed_player_quarter_stats():
+    """
+    Seed player quarter stats for all games and players in the database.
+    """
+    print("Seeding player quarter stats...")
+
+    games = Game.query.all()
+
+    for game in games:
+        # Retrieve teams for the game
+        home_team = game.home_team
+        away_team = game.away_team
+
+        # Iterate through home and away teams' players
+        for team in [home_team, away_team]:
+            for player in team.players:
+                # Retrieve sport-specific stats definitions
+                sport = team.sport
+                sport_stats = sport.stats_definitions if sport else []
+
+                # Generate stats for each quarter
+                for quarter in range(1, 5):
+                    quarter_stat = PlayerQuarterStats(
+                        player_id=player.id,
+                        game_id=game.id,
+                        quarter=quarter,
+                        sport_id=sport.id,  # Set the sport_id correctly
+                        stat_data={stat: randint(0, 10) for stat in sport_stats}
+                    )
+                    db.session.add(quarter_stat)
+
+    db.session.commit()
+    print("Player quarter stats seeded successfully.")
+
 
 
 def run_seed():
@@ -263,6 +353,9 @@ def run_seed():
     Master function to run all seeding steps in one app context.
     """
     with app.app_context():
+        reset_database()
+
+        seed_sports_and_stats()
         # 1. Load schools from data/schools/*.json
         data_directory = 'data/schools'
         load_schools_from_directory(data_directory)
@@ -276,8 +369,9 @@ def run_seed():
         # 4. Generate players for each team
         generate_players_for_teams()
 
-        seed_sports_and_stats()
+        seed_stats()
 
+        seed_player_quarter_stats()
 
 if __name__ == "__main__":
     run_seed()

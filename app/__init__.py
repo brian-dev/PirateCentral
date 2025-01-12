@@ -40,7 +40,7 @@ def create_app():
 
     # Create database tables and configure user loader
     with app.app_context():
-        from .models import User  # Import models
+        from .models import User, Team, School, Player, Game, BoxScore, Sport, Stat  # Import models
         db.create_all()
 
         @login_manager.user_loader

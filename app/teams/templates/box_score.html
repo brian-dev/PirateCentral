@@ -13,13 +13,40 @@
 
 <main class="bg-dark-body d-flex flex-column" style="min-height: 100vh; padding-top: 10px;">
     <div class="container flex-grow-1" style="background-color: dimgrey; padding: 5px; padding-bottom: 20px;">
+        <div class="row align-items-center mb-4">
+            <div class="col text-center">
+                <img src="{{ url_for('schools.static', filename='images/' ~ game.home_team.school.school_name ~ '.webp') }}"
+                     alt="{{ game.home_team.school.school_name }} Logo"
+                     class="img-fluid rounded shadow-lg"
+                     style="width: 125px; height: 125px; object-fit: cover;">
+                <h3>{{ game.home_team.school.school_name }}</h3>
+            </div>
+            <div class="col text-center">
+                <h1 class="display-5"><u>VS.</u></h1>
+            </div>
+            <div class="col text-center">
+                <img src="{{ url_for('schools.static', filename='images/' ~ game.away_team.school.school_name ~ '.webp') }}"
+                     alt="{{ game.away_team.school.school_name }} Logo"
+                     class="img-fluid rounded shadow-lg"
+                     style="width: 125px; height: 125px; object-fit: cover;">
+                <h3>{{ game.away_team.school.school_name }}</h3>
+            </div>
+        </div>
+
+        <!-- Display Final Score -->
+        <div class="text-center my-4">
+            <h4 class="text-light">Final Score</h4>
+            <h2 class="text-light">{{ game.home_team.school.school_name }}: {{ game.score_home }} - {{ game.away_team.school.school_name }}: {{ game.score_away }}</h2>
+        </div>
+
+        <!-- Table for Box Scores -->
         <table class="table table-dark table-striped">
             <thead>
                 <tr>
                     <th>Team</th>
                     <th>Points</th>
                     {% if box_scores|length > 0 %}
-                        {% for stat in box_scores[0].stats.keys() %}
+                        {% for stat in box_scores[0].stat_data.keys() %}
                             <th>{{ stat }}</th>
                         {% endfor %}
                     {% endif %}
@@ -28,15 +55,46 @@
             <tbody>
                 {% for box_score in box_scores %}
                 <tr>
-                    <td>{{ box_score.team.school.school_name }} ({{ box_score.team.grade_level }} {{ box_score.team.gender }})</td>
+                    <td>{{ box_score.home_team.school.school_name }} ({{ box_score.home_team.grade_level }} {{ box_score.home_team.gender }})</td>
                     <td>{{ box_score.points }}</td>
-                    {% for stat_value in box_score.stats.values() %}
+                    {% for stat_value in box_score.stat_data.values() %}
                         <td>{{ stat_value }}</td>
                     {% endfor %}
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- Display Quarter Stats if Football -->
+        {% if game.home_team.sport.name == 'Football' %}
+        <div class="mt-5">
+            <h4 class="text-light text-center">Quarter Stats</h4>
+            <table class="table table-dark table-striped">
+                <thead>
+                    <tr>
+                        <th>Quarter</th>
+                        <th>Team</th>
+                        {% if quarter_stats|length > 0 %}
+                            {% for stat in quarter_stats[0].stat_data.keys() %}
+                                <th>{{ stat }}</th>
+                            {% endfor %}
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in quarter_stats %}
+                    <tr>
+                        <td>{{ stat.quarter }}</td>
+                        <td>{{ stat.player.team.school.school_name }} ({{ stat.player.team.grade_level }} {{ stat.player.team.gender }})</td>
+                        {% for stat_value in stat.stat_data.values() %}
+                            <td>{{ stat_value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
     </div>
 </main>
 

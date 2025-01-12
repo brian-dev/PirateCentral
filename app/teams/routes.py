@@ -2,7 +2,7 @@ from flask import render_template, flash, redirect, url_for, Blueprint
 
 from . import teams_bp  # Import the blueprint object
 from app.decorators import role_required
-from ..models import Team, Game
+from ..models import Team, Game, BoxScore
 
 
 @teams_bp.route('/all_teams')
@@ -71,9 +71,9 @@ def schedule(team_id):
         [
             {
                 "game": game,
-                "opponent": Team.query.get(game.opponent_id)
+                "opponent": Team.query.get(game.away_team_id)
             }
-            for game in team.games
+            for game in team.home_games
         ],
         key=lambda entry: entry["game"].date  # Sort by game date
     )
@@ -84,7 +84,9 @@ def team_stats(team_id):
     team = Team.query.get_or_404(team_id)
     return render_template('team_stats.html', team=team)
 
-@teams_bp.route('/box_score/<int:game_id>', methods=['GET'])
+@teams_bp.route('/box_score/<int:game_id>')
 def box_score(game_id):
     game = Game.query.get_or_404(game_id)
-    return render_template('box_score.html', game=game)
+    box_scores = BoxScore.query.filter_by(game_id=game_id).all()
+
+    return render_template('box_score.html', game=game, box_scores=box_scores)

@@ -13,10 +13,11 @@
 
 <main class="bg-dark-body d-flex flex-column" style="min-height: 100vh; padding-top: 10px;">
     <div class="container flex-grow-1" style="background-color: dimgrey; padding: 5px; padding-bottom: 20px;">
-        <h2 class="text-light text-center">Schedule for {{ team.grade_level }} {{ team.gender }} {{ team.sport }}</h2>
+        <h2 class="text-light text-center">Schedule for {{ team.grade_level }} {{ team.gender }} {{ team.sport.name
+                }}</h2>
         <hr class="border-2 border-light">
 
-        {% if team.games %}
+        {% if games_with_opponents %}
         <table class="table table-dark table-striped">
             <thead>
                 <tr>
@@ -34,16 +35,38 @@
                 <tr>
                     <td>{{ entry.game.date.strftime('%B %d, %Y') }}</td>
                     <td>{{ entry.opponent.school.school_name }} ({{ entry.opponent.school.school_mascot }})</td>
-                    <td>{{ 'Home' if entry.game.team_id == team.id else 'Away' }}</td>
-                    <td>{{ entry.game.score_team }}</td>
-                    <td>{{ entry.game.score_opponent }}</td>
+                    <td>{{ 'Home' if entry.game.home_team_id == team.id else 'Away' }}</td>
                     <td>
-                        {% if entry.game.score_team > entry.game.score_opponent %}
-                        <span style="color: green;">W</span>
-                        {% elif entry.game.score_team < entry.game.score_opponent %}
-                        <span style="color: red;">L</span>
+                        {% if entry.game.home_team_id == team.id %}
+                            {{ entry.game.score_home }}
                         {% else %}
-                        <span style="color: gray;">T</span>
+                            {{ entry.game.score_away }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if entry.game.home_team_id == team.id %}
+                            {{ entry.game.score_away }}
+                        {% else %}
+                            {{ entry.game.score_home }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if entry.game.home_team_id == team.id %}
+                            {% if entry.game.score_home > entry.game.score_away %}
+                                <span style="color: green;">W</span>
+                            {% elif entry.game.score_home < entry.game.score_away %}
+                                <span style="color: red;">L</span>
+                            {% else %}
+                                <span style="color: gray;">T</span>
+                            {% endif %}
+                        {% else %}
+                            {% if entry.game.score_away > entry.game.score_home %}
+                                <span style="color: green;">W</span>
+                            {% elif entry.game.score_away < entry.game.score_home %}
+                                <span style="color: red;">L</span>
+                            {% else %}
+                                <span style="color: gray;">T</span>
+                            {% endif %}
                         {% endif %}
                     </td>
                     <td class="text-center">
