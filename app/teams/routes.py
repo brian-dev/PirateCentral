@@ -1,8 +1,10 @@
-from flask import render_template, flash, redirect, url_for, Blueprint
+from datetime import datetime
+
+from flask import render_template, flash, redirect, url_for, Blueprint, abort
 
 from . import teams_bp  # Import the blueprint object
 from app.decorators import role_required
-from ..models import Team, Game, BoxScore
+from ..models import Team, Game
 
 
 @teams_bp.route('/all_teams')
@@ -64,20 +66,55 @@ def roster(team_id):
     team = Team.query.get_or_404(team_id)
     return render_template('roster.html', team=team)
 
-@teams_bp.route('/schedule/<int:team_id>', methods=['GET'])
+@teams_bp.route('/schedule/<int:team_id>')
 def schedule(team_id):
     team = Team.query.get_or_404(team_id)
-    games_with_opponents = sorted(
-        [
-            {
-                "game": game,
-                "opponent": Team.query.get(game.away_team_id)
-            }
-            for game in team.home_games
-        ],
-        key=lambda entry: entry["game"].date  # Sort by game date
+    games = Game.query.filter(
+        ((Game.home_team_id == team_id) | (Game.away_team_id == team_id)) &
+        ((Team.id == Game.home_team_id) | (Team.id == Game.away_team_id)) &
+        (Team.grade_level == team.grade_level)
+    ).all()
+
+    # Calculate wins and losses
+    wins = 0
+    losses = 0
+    for game in games:
+        if game.home_team_id == team_id and game.home_score > game.away_score:
+            wins += 1
+        elif game.away_team_id == team_id and game.away_score > game.home_score:
+            wins += 1
+        else:
+            losses += 1
+
+    record = {"wins": wins, "losses": losses}
+
+    schedule = []
+    for game in games:
+        if game.away_team.grade_level == game.home_team.grade_level and game.away_team.gender == game.home_team.gender:
+            if game.home_team_id == team_id:
+                opponent = game.away_team
+                result = "Win" if game.home_score > game.away_score else "Loss"
+                score = f"{game.home_score} - {game.away_score}"
+            else:
+                opponent = game.home_team
+                result = "Win" if game.away_score > game.home_score else "Loss"
+                score = f"{game.away_score} - {game.home_score}"
+
+            schedule.append({
+                "date": game.date.strftime("%B %d, %Y"),
+                "opponent": opponent.school.school_name,
+                "opponent_level": f"{opponent.grade_level} {opponent.gender}",
+                "result": result,
+                "score": score
+            })
+
+    return render_template(
+        'schedule.html',
+        team=team,
+        schedule=schedule,
+        season={"start": team.sport.season_start, "end": team.sport.season_end},
+        record=record
     )
-    return render_template('schedule.html', team=team, games_with_opponents=games_with_opponents)
 
 @teams_bp.route('/team_stats/<int:team_id>', methods=['GET'])
 def team_stats(team_id):
