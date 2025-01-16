@@ -56,7 +56,6 @@ class Sport(db.Model):
     def __repr__(self):
         return f"<Sport {self.name}>"
 
-# Team Model
 class Team(db.Model):
     __tablename__ = 'teams'
 
@@ -66,15 +65,12 @@ class Team(db.Model):
     grade_level = db.Column(db.String(50), nullable=False)
     gender = db.Column(db.String(10), nullable=False)
 
-    # Relationships
     school = db.relationship('School', back_populates='teams')
-    sport = db.relationship('Sport')
+    sport = db.relationship('Sport', back_populates='teams')
     players = db.relationship('Player', back_populates='team', cascade='all, delete-orphan')
     home_games = db.relationship('Game', foreign_keys='Game.home_team_id', back_populates='home_team')
     away_games = db.relationship('Game', foreign_keys='Game.away_team_id', back_populates='away_team')
-
-    def __repr__(self):
-        return f"<Team {self.sport.name} ({self.grade_level}, {self.gender}), School: {self.school.school_name}>"
+    player_stats = db.relationship('PlayerStats', back_populates='team')  # Add this relationship
 
 # Game Model
 class Game(db.Model):
@@ -90,6 +86,7 @@ class Game(db.Model):
     # Relationships
     home_team = db.relationship('Team', foreign_keys=[home_team_id])
     away_team = db.relationship('Team', foreign_keys=[away_team_id])
+    player_stats = db.relationship('PlayerStats', back_populates='game')
     stats = db.relationship('GameStats', back_populates='game', cascade='all, delete-orphan')
 
     def __repr__(self):
@@ -125,21 +122,30 @@ class Player(db.Model):
     team = db.relationship('Team', back_populates='players')
     player_stats = db.relationship('PlayerStats', back_populates='player', cascade='all, delete-orphan')
 
+    def get_aggregated_stats(self):
+        """Aggregate stats across all games for this player."""
+        aggregated_stats = {}
+        for stats in self.player_stats:
+            for key, value in stats.stats.items():
+                if key in aggregated_stats:
+                    aggregated_stats[key] += value
+                else:
+                    aggregated_stats[key] = value
+        return aggregated_stats
+
     def __repr__(self):
         return f"<Player {self.first_name} {self.last_name}, Position: {self.position}, Team: {self.team_id}>"
 
-# PlayerStats Model
 class PlayerStats(db.Model):
     __tablename__ = 'player_stats'
 
     id = db.Column(db.Integer, primary_key=True)
     game_id = db.Column(db.Integer, db.ForeignKey('games.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
-    stats = db.Column(db.JSON, nullable=False)  # Store player-specific stats for the game
+    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
+    stats = db.Column(db.JSON, nullable=False)
 
-    # Relationships
-    game = db.relationship('Game')
+    game = db.relationship('Game', back_populates='player_stats')
     player = db.relationship('Player', back_populates='player_stats')
+    team = db.relationship('Team')
 
-    def __repr__(self):
-        return f"<PlayerStats Player ID: {self.player_id}, Game ID: {self.game_id}>"

@@ -36,7 +36,8 @@
                     <td>{{ player.last_name }}</td>
                     <td>{{ player.position }}</td>
                     <td class="text-end">
-                        <a href="{{ url_for('players.player_stats', player_id=player.id) }}" class="btn btn-sm btn-outline-light">View Stats</a>
+                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-sm
+                        btn-outline-light">View Stats</a>
                     </td>
                 </tr>
                 {% endfor %}

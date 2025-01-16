@@ -29,22 +29,47 @@
                     <th>Opponent Level</th>
                     <th>Result</th>
                     <th>Score</th>
+                    <th>Game Details</th>
                 </tr>
             </thead>
             <tbody>
                 {% for game in schedule %}
                 <tr>
-                    <td>{{ game.date }}</td>
-                    <td>{{ game.opponent }}</td>
-                    <td>{{ game.opponent_level }}</td>
+                    <td>{{ game.date.strftime("%B %d, %Y") }}</td>
                     <td>
-                        <span
-                            class="{% if game.result == 'Win' %}text-success{% elif game.result == 'Loss'
-                                    %}text-danger{% else %}text-light{% endif %}">
-                            {{ game.result or 'Pending' }}
-                        </span>
+                        {% if game.home_team_id == team.id %}
+                            {{ game.away_team.school.school_name }}
+                        {% else %}
+                            {{ game.home_team.school.school_name }}
+                        {% endif %}
                     </td>
-                    <td>{{ game.score }}</td>
+                    <td>
+                        {% if game.home_team_id == team.id %}
+                            {{ game.away_team.grade_level }} {{ game.away_team.gender }}
+                        {% else %}
+                            {{ game.home_team.grade_level }} {{ game.home_team.gender }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if game.home_team_id == team.id and game.home_score > game.away_score or
+                              game.away_team_id == team.id and game.away_score > game.home_score %}
+                            <span class="text-success">Win</span>
+                        {% else %}
+                            <span class="text-danger">Loss</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if game.home_team_id == team.id %}
+                            {{ game.home_score }} - {{ game.away_score }}
+                        {% else %}
+                            {{ game.away_score }} - {{ game.home_score }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('teams.game_details', game_id=game.id) }}" class="btn btn-primary">
+                            View Details
+                        </a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, Blueprint, abort
 
 from . import teams_bp  # Import the blueprint object
 from app.decorators import role_required
-from ..models import Team, Game
+from ..models import Team, Game, PlayerStats
 
 
 @teams_bp.route('/all_teams')
@@ -66,13 +66,16 @@ def roster(team_id):
     team = Team.query.get_or_404(team_id)
     return render_template('roster.html', team=team)
 
+
 @teams_bp.route('/schedule/<int:team_id>')
 def schedule(team_id):
     team = Team.query.get_or_404(team_id)
+
+    # Query only games for the specific team, grade level, and gender
     games = Game.query.filter(
         ((Game.home_team_id == team_id) | (Game.away_team_id == team_id)) &
-        ((Team.id == Game.home_team_id) | (Team.id == Game.away_team_id)) &
-        (Team.grade_level == team.grade_level)
+        (Game.home_team.has(grade_level=team.grade_level, gender=team.gender)) &
+        (Game.away_team.has(grade_level=team.grade_level, gender=team.gender))
     ).all()
 
     # Calculate wins and losses
@@ -88,42 +91,55 @@ def schedule(team_id):
 
     record = {"wins": wins, "losses": losses}
 
-    schedule = []
-    for game in games:
-        if game.away_team.grade_level == game.home_team.grade_level and game.away_team.gender == game.home_team.gender:
-            if game.home_team_id == team_id:
-                opponent = game.away_team
-                result = "Win" if game.home_score > game.away_score else "Loss"
-                score = f"{game.home_score} - {game.away_score}"
-            else:
-                opponent = game.home_team
-                result = "Win" if game.away_score > game.home_score else "Loss"
-                score = f"{game.away_score} - {game.home_score}"
-
-            schedule.append({
-                "date": game.date.strftime("%B %d, %Y"),
-                "opponent": opponent.school.school_name,
-                "opponent_level": f"{opponent.grade_level} {opponent.gender}",
-                "result": result,
-                "score": score
-            })
-
+    # Pass the `games` SQLAlchemy objects directly to the template
     return render_template(
         'schedule.html',
         team=team,
-        schedule=schedule,
+        schedule=games,  # Pass raw SQLAlchemy game objects
         season={"start": team.sport.season_start, "end": team.sport.season_end},
         record=record
     )
+
 
 @teams_bp.route('/team_stats/<int:team_id>', methods=['GET'])
 def team_stats(team_id):
     team = Team.query.get_or_404(team_id)
     return render_template('team_stats.html', team=team)
 
-@teams_bp.route('/box_score/<int:game_id>')
-def box_score(game_id):
+@teams_bp.route('/game/<int:game_id>', methods=['GET'])
+def game_details(game_id):
+    """Display the details of a specific game."""
+    # Retrieve the game object
     game = Game.query.get_or_404(game_id)
-    box_scores = BoxScore.query.filter_by(game_id=game_id).all()
 
-    return render_template('box_score.html', game=game, box_scores=box_scores)
+    # Retrieve player statistics for both teams
+    home_team_stats = PlayerStats.query.filter_by(game_id=game.id, team_id=game.home_team_id).all()
+    away_team_stats = PlayerStats.query.filter_by(game_id=game.id, team_id=game.away_team_id).all()
+
+    # Aggregate statistics for comparison
+    home_team_aggregated_stats = {}
+    away_team_aggregated_stats = {}
+
+    # Assuming stats definitions are uniform for both teams
+    stats_definitions = game.home_team.sport.stats_definitions
+    for stat_name in stats_definitions:
+        home_team_aggregated_stats[stat_name] = sum(
+            stat.stats.get(stat_name, 0) for stat in home_team_stats
+        )
+        away_team_aggregated_stats[stat_name] = sum(
+            stat.stats.get(stat_name, 0) for stat in away_team_stats
+        )
+
+    # Pass data to the template
+    game_stats = {
+        "home_team": game.home_team,
+        "away_team": game.away_team,
+        "home_score": game.home_score,
+        "away_score": game.away_score,
+        "home_team_stats": home_team_stats,
+        "away_team_stats": away_team_stats,
+        "home_team_aggregated_stats": home_team_aggregated_stats,
+        "away_team_aggregated_stats": away_team_aggregated_stats,
+    }
+
+    return render_template('game_details.html', game=game, game_stats=game_stats)

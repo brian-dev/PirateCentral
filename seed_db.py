@@ -7,7 +7,7 @@ from faker import Faker
 
 from run import app  # Import the globally initialized app
 from app.extensions import db
-from app.models import Sport, Team, Player, School, Game
+from app.models import Sport, Team, Player, School, Game, PlayerStats
 
 
 def reset_database():
@@ -135,9 +135,19 @@ def seed_players():
     for team in teams:
         positions = team.sport.stats_definitions
         for _ in range(15):  # Create 15 players per team
+            # Generate names based on team gender
+            if team.gender.lower() == "boys":
+                first_name = fake.first_name_male()
+            elif team.gender.lower() == "girls":
+                first_name = fake.first_name_female()
+            else:
+                first_name = fake.first_name()
+
+            last_name = fake.last_name()
+
             player = Player(
-                first_name=fake.first_name(),
-                last_name=fake.last_name(),
+                first_name=first_name,
+                last_name=last_name,
                 position=fake.random_element(positions),
                 team_id=team.id,
             )
@@ -148,76 +158,53 @@ def seed_players():
 
 
 def seed_games():
-    """Generate games with accurate dates, enforce season rules, and restrict games to the same district."""
+    """Generate games and associated stats."""
     print("Seeding games...")
     teams = Team.query.all()
-
-    # Define sport-specific seasons
-    sport_seasons = {
-        "Football": {"start": datetime(datetime.now().year, 8, 1), "end": datetime(datetime.now().year, 12, 1)},
-        "Basketball": {"start": datetime(datetime.now().year, 11, 1), "end": datetime(datetime.now().year + 1, 3, 1)},
-        "Baseball": {"start": datetime(datetime.now().year, 2, 1), "end": datetime(datetime.now().year, 6, 1)},
-    }
-
-    # UIL-specific game limits
-    max_games_per_team = {
-        "Football": 10,
-        "Basketball": 30,
-        "Baseball": 20,
-    }
+    season_start = datetime.now()
+    season_end = season_start + timedelta(weeks=10)
+    fake = Faker()
 
     for home_team in teams:
-        sport_name = home_team.sport.name
+        opponent_teams = Team.query.filter(Team.id != home_team.id, Team.sport_id == home_team.sport_id).all()
 
-        # Get the sport season and game limit
-        season = sport_seasons.get(sport_name)
-        if not season:
-            print(f"Skipping {sport_name}, as it does not have a defined season.")
-            continue
+        for away_team in opponent_teams:
+            game_date = season_start + timedelta(days=randint(0, (season_end - season_start).days))
+            home_score = randint(0, 50)
+            away_score = randint(0, 50)
 
-        max_games = max_games_per_team.get(sport_name, 10)
-
-        # Filter opponents by district and sport
-        opponent_teams = Team.query.join(School).filter(
-            Team.id != home_team.id,  # Exclude the home team
-            Team.sport_id == home_team.sport_id,  # Same sport
-            School.uil_district == home_team.school.uil_district  # Match UIL district
-        ).all()
-
-        # Generate up to the maximum allowed games
-        generated_games = 0
-        while generated_games < max_games and opponent_teams:
-            # Randomly pick an opponent from the same district
-            away_team = opponent_teams[randint(0, len(opponent_teams) - 1)]
-
-            # Generate a random game date within the season
-            game_date = season["start"] + timedelta(
-                days=randint(0, (season["end"] - season["start"]).days)
+            # Create the game
+            game = Game(
+                date=game_date,
+                home_team_id=home_team.id,
+                away_team_id=away_team.id,
+                home_score=home_score,
+                away_score=away_score
             )
+            db.session.add(game)
+            db.session.flush()
 
-            # Check if this game already exists
-            existing_game = Game.query.filter(
-                ((Game.home_team_id == home_team.id) & (Game.away_team_id == away_team.id)) |
-                ((Game.home_team_id == away_team.id) & (Game.away_team_id == home_team.id)),
-                Game.date == game_date
-            ).first()
+            # Generate player stats for the game
+            for player in home_team.players:
+                stats = {
+                    "Passing Yards": randint(0, 300),
+                    "Tackles": randint(0, 15),
+                    "Rushing Yards": randint(0, 200)
+                }
+                player_stats = PlayerStats(player_id=player.id, game_id=game.id, stats=stats, team_id=game.home_team_id)
+                db.session.add(player_stats)
 
-            if not existing_game:
-                # Create and add the game
-                game = Game(
-                    date=game_date,
-                    home_team_id=home_team.id,
-                    away_team_id=away_team.id,
-                    home_score=randint(0, 50),
-                    away_score=randint(0, 50),
-                )
-                db.session.add(game)
-                generated_games += 1
+            for player in away_team.players:
+                stats = {
+                    "Passing Yards": randint(0, 300),
+                    "Tackles": randint(0, 15),
+                    "Rushing Yards": randint(0, 200)
+                }
+                player_stats = PlayerStats(player_id=player.id, game_id=game.id, stats=stats, team_id=game.away_team_id)
+                db.session.add(player_stats)
 
     db.session.commit()
-    print("Games seeded successfully.")
-
-
+    print("Games and stats seeded successfully.")
 
 def run_seed():
     """Master function to seed the database."""

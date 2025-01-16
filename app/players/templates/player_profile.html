@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ player.first_name }} {{ player.last_name }} Profile{% endblock %}
+{% block content %}
+<header class="bg-dark-body">
+    <div>
+        <img src="{{ url_for('schools.static', filename='images/all_schools_banner.webp') }}"
+             alt="Player Profile Banner"
+             class="img-fluid"
+             style="height: 170px; width: 100%; object-fit: cover;">
+    </div>
+</header>
+
+<main class="bg-dark-body" style="min-height: 100vh; padding-top: 10px;">
+    <div class="container text-light">
+        <h1 class="text-center">{{ player.first_name }} {{ player.last_name }}</h1>
+        <p><strong>Position:</strong> {{ player.position }}</p>
+        <p><strong>Team:</strong> {{ player.team.school.school_name }} - {{ player.team.grade_level }} {{ player.team.gender }}</p>
+
+        <h3 class="mt-4">Aggregated Stats</h3>
+        <table class="table table-dark table-striped mt-4">
+            <thead>
+                <tr>
+                    <th>Stat</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat, value in stats.items() %}
+                <tr>
+                    <td>{{ stat }}</td>
+                    <td>{{ value }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</main>
+{% endblock %}

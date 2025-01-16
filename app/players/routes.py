@@ -1,11 +1,13 @@
 from flask import render_template, Blueprint, request, redirect, url_for, flash
 from . import players_bp
 from app.decorators import role_required
+from ..models import Player
+
 
 @players_bp.route('/players/<int:player_id>/add_stats', methods=["GET", "POST"])
 # @role_required(["coach", "admin"])
 def add_stats():
-    from app.models import Stat, Player, Game  # Delay import
+    from app.models import Player, Game  # Delay import
     from app import db  # Delay import
 
     if request.method == 'POST':
@@ -70,12 +72,20 @@ def add_stats():
     return render_template('add_stats.html', players=players, games=games)
 
 
-@players_bp.route('/players/<int:player_id>')
-def player_stats(player_id):
-    from app.models import Stat, Player  # Delay import
+# @players_bp.route('/players/<int:player_id>')
+# def player_stats(player_id):
+#     from app.models import Stat, Player  # Delay import
+#     player = Player.query.get_or_404(player_id)
+#     stats = Stat.query.filter_by(player_id=player_id).all()
+#     return render_template('player_profile.html', player=player, stats=stats)
+
+@players_bp.route('/players/<int:player_id>', methods=['GET'])
+def player_profile(player_id):
+    """Display a player's profile and aggregated stats."""
     player = Player.query.get_or_404(player_id)
-    stats = Stat.query.filter_by(player_id=player_id).all()
-    return render_template('player_stats.html', player=player, stats=stats)
+    aggregated_stats = player.get_aggregated_stats()
+
+    return render_template('player_profile.html', player=player, stats=aggregated_stats)
 
 
 @players_bp.route('/players/add_player', methods=['GET', 'POST'])
