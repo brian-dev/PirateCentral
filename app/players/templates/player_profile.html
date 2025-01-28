@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ player.first_name }} {{ player.last_name }} Profile{% endblock %}
+{% block content %}
+<header class="bg-dark-body">
+    <div>
+        <img src="{{ url_for('schools.static', filename='images/all_schools_banner.webp') }}"
+             alt="Player Profile Banner"
+             class="img-fluid"
+             style="height: 170px; width: 100%; object-fit: cover;">
+    </div>
+</header>
+
+<main class="bg-dark-body" style="min-height: 100vh; padding-top: 10px;">
+    <div class="container text-light">
+        <div class="row g-0 align-items-center">
+        <!-- Image on the left -->
+        <div class="col-auto">
+            <img src="https://ui-avatars.com/api/?name={{ player.first_name }}+{{ player.last_name
+                    }}&background=random&size=50"
+                 alt="{{ player.first_name }} {{ player.last_name }}"
+                 class="img-thumbnail rounded shadow"
+                 style="width: 125px; height: 135px; object-fit: cover;">
+
+        </div>
+        <!-- School name/mascot on the right -->
+        <div class="col ms-2 text-center">
+            <h1 class="mb-0">{{ player.team.school.school_name }} {{ player.team.school.school_mascot }} {{
+                    player.team.grade_level }} {{ player.team.sport.name }}</h1>
+        </div>
+        <hr class="border-2 border-top text-dark my-3">
+        <h1 class="text-center">{{ player.first_name }} {{ player.last_name }} | {{ player.position }}</h1>
+
+        <h3 class="mt-4">Season Stats</h3>
+        <table class="table table-dark table-striped mt-4" style="width: 350px;">
+            <thead>
+                <tr>
+                    <th>Stat</th>
+                    <th class="text-center">Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat, value in stats.items() %}
+                <tr>
+                    <td>{{ stat }}</td>
+                    <td class="text-center">{{ value }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <hr class="border-2 border-top text-dark my-3">
+        <h3 class="mt-4">Game Stats</h3>
+        <table class="table table-dark table-striped mt-4">
+        <thead>
+            <tr>
+                <th>Game Date</th>
+                <th>Opponent</th>
+                <th>Stat</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for player_stat in player_stats %}
+            <tr>
+                <td>{{ player_stat.game.date.strftime('%B %d, %Y') }}</td>
+                <td>
+                    {% if player_stat.team_id == player_stat.game.home_team_id %}
+                        {{ player_stat.game.away_team.school.school_name }}
+                    {% else %}
+                        {{ player_stat.game.home_team.school.school_name }}
+                    {% endif %}
+                </td>
+                <td colspan="2">
+                    <table class="table table-borderless table-sm">
+                        <tbody>
+                            {% for stat, value in player_stat.stats.items() %}
+                            <tr>
+                                <td class="text-light">{{ stat }}</td>
+                                <td class="text-light">{{ value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    </div>
+</main>
+{% endblock %}

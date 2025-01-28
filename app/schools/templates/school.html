@@ -72,8 +72,10 @@
                                     <div>
                                         <a href="{{ url_for('teams.roster', team_id=team.id) }}"
                                            class="btn btn-link btn-sm text-decoration-none me-2 text-secondary">View Roster</a>
-                                        <a href="{{ url_for('teams.schedule', team_id=team.id) }}"
-                                           class="btn btn-link btn-sm text-decoration-none me-2 text-secondary">View Schedule</a>
+                                        <a href="{{ url_for('teams.schedule', team_id=team.id) }}" class="btn
+                                           btn-link btn-sm text-decoration-none me-2 text-secondary">
+                                           View Schedule
+                                        </a>
                                         <a href="{{ url_for('teams.team_stats', team_id=team.id) }}"
                                            class="btn btn-link btn-sm text-decoration-none text-secondary">Team Stats</a>
                                     </div>

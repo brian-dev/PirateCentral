@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Game Details{% endblock %}
+{% block content %}
+<header class="bg-dark-body">
+    <div>
+        <img src="{{ url_for('schools.static', filename='images/all_schools_banner.webp') }}"
+             alt="Game Details Banner"
+             class="img-fluid"
+             style="height: 170px; width: 100%; object-fit: cover;">
+    </div>
+</header>
+
+<main class="bg-dark-body" style="min-height: 100vh; padding-top: 10px;">
+    <div class="container text-light">
+        <h1 class="text-center">Game Details</h1>
+
+        <p><strong>Date:</strong> {{ game.date }}</p>
+        <p><strong>Home Team:</strong> {{ game_stats.home_team.school.school_name }}
+            ({{ game_stats.home_team.grade_level }} {{ game_stats.home_team.gender }})
+        </p>
+        <p><strong>Away Team:</strong> {{ game_stats.away_team.school.school_name }}
+            ({{ game_stats.away_team.grade_level }} {{ game_stats.away_team.gender }})
+        </p>
+        <p><strong>Score:</strong> {{ game_stats.home_score }} - {{ game_stats.away_score }}</p>
+
+        <div class="row">
+            <!-- Home Team Stats Table -->
+            <div class="col-md-5">
+                <div class="d-flex align-items-center">
+                    <img src="{{ url_for('schools.static', filename='images/' ~ game_stats.home_team.school.school_name
+                    ~ '.webp') }}"
+                         alt="School Logo"
+                         class="img-fluid rounded"
+                         style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px;">
+                    <h2 class="mb-0">{{ game_stats.home_team.school.school_name }}</h2>
+                </div>
+                <hr class="border-2 border-top text-dark my-3">
+                <table class="table table-dark table-striped">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            {% for stat_name in game_stats.home_team.sport.stats_definitions %}
+                                <th>{{ stat_name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in game_stats.home_team_stats %}
+                        <tr>
+                            <td>{{ stat.player.first_name }} {{ stat.player.last_name }}</td>
+                            {% for value in stat.stats.values() %}
+                                <td>{{ value }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Comparison Section -->
+            <div class="col-md-2 text-center align-self-center">
+                <h2>Comparison</h2>
+                <ul class="list-unstyled">
+                    {% for stat_name in game_stats.home_team.sport.stats_definitions %}
+                    <li>
+                        {% set home_stat = game_stats.home_team_aggregated_stats[stat_name] %}
+                        {% set away_stat = game_stats.away_team_aggregated_stats[stat_name] %}
+                        <strong>{{ stat_name }}:</strong>
+                        {{ (home_stat - away_stat) | abs }}
+                        {% if home_stat > away_stat %}
+                            <i class="text-success bi bi-arrow-right"></i>
+                        {% elif home_stat < away_stat %}
+                            <i class="text-danger bi bi-arrow-left"></i>
+                        {% else %}
+                            <span class="text-light">Equal</span>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Away Team Stats Table -->
+            <div class="col-md-5">
+                <div class="d-flex align-items-center">
+                    <img src="{{ url_for('schools.static', filename='images/' ~ game_stats.away_team.school.school_name ~ '.webp') }}"
+                         alt="School Logo"
+                         class="img-fluid rounded"
+                         style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px;">
+                    <h2 class="mb-0">{{ game_stats.away_team.school.school_name }}</h2>
+                </div>
+                <hr class="border-2 border-top text-dark my-3">
+                <table class="table table-dark table-striped">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            {% for stat_name in game_stats.away_team.sport.stats_definitions %}
+                                <th>{{ stat_name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in game_stats.away_team_stats %}
+                        <tr>
+                            <td>{{ stat.player.first_name }} {{ stat.player.last_name }}</td>
+                            {% for value in stat.stats.values() %}
+                                <td>{{ value }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <a href="{{ url_for('teams.schedule', team_id=game_stats.home_team.id) }}" class="btn btn-secondary">Back to Schedule</a>
+    </div>
+</main>
+{% endblock %}

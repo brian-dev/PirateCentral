@@ -1,377 +1,523 @@
 import json
 import os
-from datetime import datetime, timedelta
+import random
+from datetime import timedelta, datetime
 from random import randint
+
 from faker import Faker
 
-from run import app  # Import your Flask app instance
-from app import db
-from app.models import School, Team, Game, Player, BoxScore, Sport, Stat, PlayerQuarterStats
+from run import app  # Import the globally initialized app
+from app.extensions import db
+from app.models import Sport, Team, Player, School, Game, PlayerStats
 
 
 def reset_database():
-    """Drops and recreates the database schema."""
-    with app.app_context():  # Push the app context
-        db.drop_all()
-        print("All tables dropped successfully.")
-        db.create_all()
-        print("All tables created successfully.")
+    db.drop_all()
+    print("All tables dropped successfully.")
+    db.create_all()
+    print("All tables created successfully.")
 
-def load_schools_from_directory(data_dir):
-    """
-    Load all schools from JSON files in a directory and add them to the database.
-    Assumes that each JSON file has a list of school objects matching the School model fields.
-    """
-    for filename in os.listdir(data_dir):
-        if filename.endswith('.json'):  # Process only JSON files
-            file_path = os.path.join(data_dir, filename)
-            with open(file_path, 'r') as f:
-                schools_data = json.load(f)
-
-            for school_data in schools_data:
-                school = School(**school_data)
-                db.session.add(school)
-
-            print(f"Imported {len(schools_data)} schools from {filename}")
-
-    db.session.commit()
-    print("All schools imported successfully.")
-
-
-def seed_teams_for_existing_schools():
-    """
-    Reads multiple JSON files from the 'data/school_teams' directory and
-    seeds/upserts teams for the schools in your existing database.
-    """
-    print("Seeding teams for existing schools...")
-    directory_path = 'data/school_teams'
-
-    for filename in os.listdir(directory_path):
-        if filename.endswith('.json'):
-            file_path = os.path.join(directory_path, filename)
-            with open(file_path, 'r') as f:
-                data = json.load(f)
-
-            for school_name, levels_dict in data.items():
-                school = School.query.filter_by(school_name=school_name).first()
-
-                if not school:
-                    print(f"School not found in DB, skipping: {school_name}")
-                    continue
-
-                for level, gender_dict in levels_dict.items():
-                    for gender, sports in gender_dict.items():
-                        for sport_name in sports:
-                            # Check if the sport exists
-                            sport = Sport.query.filter_by(name=sport_name).first()
-                            if not sport:
-                                print(f"Sport not found in DB, skipping: {sport_name}")
-                                continue
-
-                            # Use `.has()` for filtering by relationships
-                            existing_team = Team.query.filter(
-                                Team.grade_level == level,
-                                Team.gender == gender,
-                                Team.sport == sport,
-                                Team.school_id == school.id
-                            ).first()
-
-                            if existing_team:
-                                print(f"Team already exists: {school_name} - {level} {gender} - {sport_name}")
-                            else:
-                                new_team = Team(
-                                    grade_level=level,
-                                    gender=gender,
-                                    sport=sport,  # Use the sport object here
-                                    school_id=school.id
-                                )
-                                db.session.add(new_team)
-
-    db.session.commit()
-    print("Finished seeding teams from all files.")
-
-def seed_sports_and_stats():
-    """
-    Seed the database with predefined sports and their stats.
-    """
-    print("Seeding sports and their stats...")
-
+def seed_sports():
+    """Seed the database with predefined sports."""
+    print("Seeding sports...")
     sports_stats = {
-        "Football": ["Passing Yards", "Rushing Yards", "Receiving Yards", "Tackles", "Sacks"],
-        "Baseball": ["Runs", "Hits", "Errors", "RBIs", "Strikeouts"],
-        "Basketball": ["Points", "Rebounds", "Assists", "Steals", "Blocks"],
-        "Softball": ["Runs", "Hits", "Errors", "RBIs", "Strikeouts"],
-        "Cross Country": ["Finish Time", "Placement"],
-        "Golf": ["Strokes", "Par", "Birdies", "Eagles"],
-        "Wrestling": ["Takedowns", "Pins", "Escapes"],
-        "Soccer": ["Goals", "Assists", "Shots", "Turnovers", "Passes Completed",
-                   "Passes Attempted", "Fouls", "Yellow Cards", "Red Cards", "Offsides",
-                   "Corner Kicks", "Saves"],
-        "Track and Field": ["100m", "Hurdles", "Shotput", "Pole Vault"],
-        "Volleyball": ["Hits", "Spikes", "Aces"],
-        "Tennis": ["Aces", "Hits", "Misses"]
+        "Football": [
+            "Passing Yards",  # Total passing yards
+            "Passing Touchdowns",  # Total passing touchdowns
+            "Interceptions Thrown",  # Total interceptions thrown
+            "Rushing Yards",  # Total rushing yards
+            "Rushing Touchdowns",  # Total rushing touchdowns
+            "Receiving Yards",  # Total receiving yards
+            "Receiving Touchdowns",  # Total receiving touchdowns
+            "Tackles",  # Total tackles
+            "Sacks",  # Total sacks
+            "Interceptions",  # Defensive interceptions
+            "Fumbles Recovered",  # Fumbles recovered
+            "Field Goals Made",  # Kicking field goals made
+            "Field Goals Attempted"  # Kicking field goals attempted
+        ],
+        "Basketball": [
+            "Points",  # Total points scored
+            "Rebounds",  # Total rebounds (offensive and defensive)
+            "Assists",  # Total assists
+            "Steals",  # Total steals
+            "Blocks",  # Total blocks
+            "Turnovers",  # Total turnovers
+            "Field Goal Percentage",  # Shooting accuracy from the field
+            "Three-Point Percentage",  # Shooting accuracy for three-pointers
+            "Free Throw Percentage",  # Shooting accuracy for free throws
+            "Minutes Played",  # Total minutes played
+            "Personal Fouls"  # Number of fouls committed
+        ],
+        "Baseball": [
+            "Runs",  # Total runs scored
+            "Hits",  # Total hits
+            "Home Runs",  # Total home runs
+            "RBIs",  # Runs batted in
+            "Stolen Bases",  # Total stolen bases
+            "Caught Stealing",  # Number of times caught stealing
+            "Batting Average",  # Player's batting average
+            "On-Base Percentage",  # On-base percentage
+            "Slugging Percentage",  # Slugging percentage
+            "Errors",  # Number of fielding errors
+            "Strikeouts (Pitcher)",  # Strikeouts by pitchers
+            "Walks Allowed",  # Walks allowed by pitchers
+            "ERA",  # Earned run average (pitchers)
+            "Innings Pitched"  # Innings pitched (pitchers)
+        ],
+        "Soccer": [
+            "Goals",  # Total goals scored
+            "Assists",  # Total assists
+            "Shots",  # Total shots taken
+            "Shots on Target",  # Total shots on target
+            "Passes Completed",  # Total successful passes
+            "Pass Accuracy",  # Pass accuracy percentage
+            "Tackles",  # Total tackles made
+            "Interceptions",  # Total interceptions
+            "Fouls Committed",  # Total fouls committed
+            "Fouls Won",  # Total fouls won
+            "Yellow Cards",  # Total yellow cards received
+            "Red Cards",  # Total red cards received
+            "Saves",  # Goalkeeper saves
+            "Clean Sheets"  # Goalkeeper clean sheets
+        ],
+        "Volleyball": [
+            "Kills",  # Total kills (successful attacks)
+            "Assists",  # Total assists
+            "Digs",  # Total digs (defensive saves)
+            "Blocks",  # Total blocks
+            "Aces",  # Total service aces
+            "Service Errors",  # Total service errors
+            "Hitting Percentage",  # Hitting accuracy percentage
+            "Set Assists",  # Total assists as a setter
+            "Reception Errors",  # Errors on receiving serves
+            "Serve Percentage",  # Serve success rate
+            "Total Points"  # Total points contributed
+        ]
+    }
+
+    season_dates = {
+        "Football": {"start": datetime(datetime.now().year, 8, 1), "end": datetime(datetime.now().year, 12, 1)},
+        "Basketball": {"start": datetime(datetime.now().year, 11, 1), "end": datetime(datetime.now().year + 1, 3, 1)},
+        "Baseball": {"start": datetime(datetime.now().year, 2, 1), "end": datetime(datetime.now().year, 6, 1)},
     }
 
     for sport_name, stats in sports_stats.items():
-        # Check if the sport already exists
-        existing_sport = Sport.query.filter_by(name=sport_name).first()
-        if existing_sport:
-            print(f"Sport '{sport_name}' already exists. Skipping...")
-            continue
-
-        # Create and add the new sport
-        new_sport = Sport(name=sport_name, stats_definitions=stats)
-        db.session.add(new_sport)
-
-    db.session.commit()
-    print("Sports and their stats seeded successfully.")
-
-
-
-def generate_mock_schedule():
-    """
-    Generate a mock schedule for each team in the database based on UIL rules,
-    along with sport-specific stats for each game.
-    """
-    print("Generating mock schedules...")
-    teams = Team.query.all()
-
-    season_dates = {
-        "Football": {
-            "start": datetime(datetime.now().year, 8, 1) + timedelta(weeks=3, days=-datetime(datetime.now().year, 8, 1).weekday() - 3),
-            "end": datetime(datetime.now().year, 11, 1) + timedelta(days=(4 - datetime(datetime.now().year, 11, 1).weekday())),
-        },
-        # Other sports...
-    }
-
-    default_season_start = datetime.now() + timedelta(days=7)
-    default_season_end = default_season_start + timedelta(weeks=16)
-
-    for home_team in teams:
-        sport = home_team.sport
-        sport_stats = {sport.name: sport.stats_definitions for sport in Sport.query.all()}
-        sport_dates = season_dates.get(sport, {"start": default_season_start, "end": default_season_end})
-        season_start = sport_dates["start"]
-        season_end = sport_dates["end"]
-
-        if season_start >= season_end:
-            print(f"Invalid date range for {sport}. Skipping schedule generation.")
-            continue
-
-        district_teams = Team.query.filter(
-            Team.school_id != home_team.school_id,
-            Team.grade_level == home_team.grade_level,
-            Team.gender == home_team.gender,
-            Team.sport == home_team.sport
-        ).all()
-
-        for away_team in district_teams:
-            for is_home in [True, False]:
-                game_date = season_start + timedelta(days=randint(0, (season_end - season_start).days))
-                home_team_score = randint(40, 100)
-                away_team_score = randint(40, 100)
-
-                existing_game = Game.query.filter_by(
-                    home_team_id=home_team.id if is_home else away_team.id,
-                    away_team_id=away_team.id if is_home else home_team.id,
-                    date=game_date
-                ).first()
-
-                if not existing_game:
-                    new_game = Game(
-                        date=game_date,
-                        home_team_id=home_team.id if is_home else away_team.id,
-                        away_team_id=away_team.id if is_home else home_team.id,
-                        score_home=home_team_score,
-                        score_away=away_team_score,
-                    )
-                    db.session.add(new_game)
-                    db.session.flush()
-
-                    # Generate box scores with sport-specific stats
-                    box_score_home_team = BoxScore(
-                        game_id=new_game.id,
-                        home_team_id=home_team.id,
-                        away_team_id=away_team.id,
-                        points=home_team_score,
-                        stat_data={stat: randint(1, 10) for stat in sport_stats},
-                    )
-                    box_score_away_team = BoxScore(
-                        game_id=new_game.id,
-                        away_team_id=home_team.id,
-                        home_team_id=away_team.id,
-                        points=away_team_score,
-                        stat_data={stat: randint(1, 10) for stat in sport_stats},
-                    )
-                    db.session.add(box_score_home_team)
-                    db.session.add(box_score_away_team)
+        season = season_dates.get(sport_name, {"start": datetime.now(), "end": datetime.now() + timedelta(days=120)})
+        sport = Sport.query.filter_by(name=sport_name).first()
+        if not sport:
+            sport = Sport(
+                name=sport_name,
+                stats_definitions=stats,
+                season_start=season["start"],
+                season_end=season["end"]
+            )
+            db.session.add(sport)
 
     db.session.commit()
-    print("Mock schedules and box scores generated for all teams.")
+    print("Sports seeded successfully.")
 
 
-def generate_players_for_teams():
-    """
-    Generate random players for each team with positions based on the sport.
-    """
-    print("Generating players...")
+def seed_schools():
+    """Seed schools from JSON files."""
+    print("Seeding schools...")
+    data_dir = "data/schools"
+    for filename in os.listdir(data_dir):
+        if filename.endswith(".json"):
+            with open(os.path.join(data_dir, filename), "r") as f:
+                schools_data = json.load(f)
+
+                for school_data in schools_data:
+                    school = School(**school_data)
+                    db.session.add(school)
+
+    db.session.commit()
+    print("Schools seeded successfully.")
+
+
+def seed_teams_from_directory():
+    directory_path = "data/school_teams"
+    """Seed teams from all JSON files in the specified directory."""
+
+    print(f"Seeding teams from all JSON files in {directory_path}...")
+
+    if not os.path.exists(directory_path):
+        print(f"Directory not found: {directory_path}")
+        return
+
+    # Iterate through all files in the directory
+    for filename in os.listdir(directory_path):
+        if filename.endswith('.json'):
+            file_path = os.path.join(directory_path, filename)
+            print(f"Processing file: {file_path}")
+
+            with open(file_path, 'r') as f:
+                school_teams_data = json.load(f)
+
+            for school_name, levels in school_teams_data.items():
+                # Find the school in the database
+                school = School.query.filter_by(school_name=school_name).first()
+                if not school:
+                    print(f"School not found in the database, skipping: {school_name}")
+                    continue
+
+                for grade_level, genders in levels.items():
+                    for gender, sports in genders.items():
+                        for sport_name in sports:
+                            # Find the sport in the database
+                            sport = Sport.query.filter_by(name=sport_name).first()
+                            if not sport:
+                                print(f"Sport not found in the database, skipping: {sport_name}")
+                                continue
+
+                            # Check if the team already exists
+                            existing_team = Team.query.filter_by(
+                                school_id=school.id,
+                                sport_id=sport.id,
+                                grade_level=grade_level,
+                                gender=gender
+                            ).first()
+
+                            if existing_team:
+                                print(f"Team already exists: {school_name} - {grade_level} {gender} - {sport_name}")
+                                continue
+
+                            # Create a new team
+                            new_team = Team(
+                                school_id=school.id,
+                                sport_id=sport.id,
+                                grade_level=grade_level,
+                                gender=gender
+                            )
+                            db.session.add(new_team)
+                            print(f"Added team: {school_name} - {grade_level} {gender} - {sport_name}")
+
+    # Commit the changes to the database
+    db.session.commit()
+    print("All teams seeded successfully.")
+
+
+def seed_players():
+    """Seed players for each team with realistic position distributions."""
+    print("Seeding players...")
     fake = Faker()
-
-    sport_positions = {
-        "Basketball": {"positions": ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"],
-                       "average_per_position": 2},
-        "Baseball": {
-            "positions": ["Pitcher", "Catcher", "First Base", "Second Base", "Third Base", "Short Stop", "Right Field",
-                          "Center Field", "Left Field"], "average_per_position": 3},
-        "Soccer": {"positions": ["Goalkeeper", "Fullback", "Midfielder", "Forward"], "average_per_position": 4},
-        "Football": {"positions": ["Quarterback", "Running Back", "Wide Receiver", "Tight End", "Offensive Line",
-                                   "Defensive Line", "Linebacker", "Defensive Back", "Kicker", "Punter", "Returner"],
-                     "average_per_position": 5},
-        "Volleyball": {"positions": ["Setter", "Outside Hitter", "Middle Blocker", "Libero"],
-                       "average_per_position": 2},
-        "Track and Field": {"positions": ["Sprinter", "Distance Runner", "Thrower", "Jumper"],
-                            "average_per_position": 2},
-    }
-
-    default_number_of_players = 6
     teams = Team.query.all()
+
+    # Define realistic player distributions for each sport
+    sport_position_distributions = {
+        "Football": {
+            "Quarterback": 2,
+            "Running Back": 4,
+            "Wide Receiver": 5,
+            "Linebacker": 6,
+            "Cornerback": 4,
+            "Safety": 4,
+            "Tight End": 3,
+            "Offensive Lineman": 10,
+            "Defensive Lineman": 8,
+            "Kicker": 2
+        },
+        "Basketball": {
+            "Point Guard": 3,
+            "Shooting Guard": 3,
+            "Small Forward": 3,
+            "Power Forward": 3,
+            "Center": 3
+        },
+        "Baseball": {
+            "Pitcher": 5,
+            "Catcher": 2,
+            "First Baseman": 2,
+            "Second Baseman": 2,
+            "Shortstop": 2,
+            "Third Baseman": 2,
+            "Left Fielder": 3,
+            "Center Fielder": 3,
+            "Right Fielder": 3
+        },
+        "Soccer": {
+            "Goalkeeper": 2,
+            "Defender": 8,
+            "Midfielder": 8,
+            "Forward": 4
+        },
+        "Volleyball": {
+            "Setter": 2,
+            "Outside Hitter": 4,
+            "Opposite Hitter": 3,
+            "Middle Blocker": 3,
+            "Libero": 2,
+            "Defensive Specialist": 2
+        },
+        "Cross Country": {
+            "Runner": 8
+        },
+        # Add more sports and their distributions as needed
+    }
 
     for team in teams:
-        print(f"Generating players for team: {team.sport.name} ({team.grade_level} {team.gender})")
+        # Get position distribution for the sport or fallback to a default
+        position_distribution = sport_position_distributions.get(team.sport.name, {"Player": 15})
 
-        # Retrieve sport information
-        sport_data = sport_positions.get(team.sport.name, None)
+        for position, count in position_distribution.items():
+            for _ in range(count):
+                # Generate names based on team gender
+                if team.gender.lower() == "boys":
+                    first_name = fake.first_name_male()
+                elif team.gender.lower() == "girls":
+                    first_name = fake.first_name_female()
+                else:
+                    first_name = fake.first_name()
 
-        if sport_data:
-            positions = sport_data["positions"]
-            average_per_position = sport_data["average_per_position"]
-            number_of_players = len(positions) * average_per_position
-        else:
-            positions = ["Player"]
-            number_of_players = default_number_of_players
+                last_name = fake.last_name()
 
-        for _ in range(number_of_players):
-            position = fake.random_element(positions)
+                player = Player(
+                    first_name=first_name,
+                    last_name=last_name,
+                    position=position,
+                    team_id=team.id,
+                )
+                db.session.add(player)
 
-            if team.gender.lower() == "boys":
-                first_name = fake.first_name_male()
-            elif team.gender.lower() == "girls":
-                first_name = fake.first_name_female()
-            else:
-                first_name = fake.first_name()
+    db.session.commit()
+    print("Players seeded successfully.")
 
-            last_name = fake.last_name()
+def seed_games():
+    """Generate games and associated stats."""
+    print("Seeding games...")
+    teams = Team.query.all()
+    sports_season_dates = {
+        sport.name: (sport.season_start, sport.season_end)
+        for sport in Sport.query.all()
+    }
+    # fake = Faker()
+    # total_weeks = 10
+    # total_weeks = (season_end - season_start).days // 7
+    position_specific_stats = {
+        "Football": {
+            "Quarterback": {
+                "Passing Yards": (200, 400),
+                "Passing Touchdowns": (2, 5),
+                "Interceptions Thrown": (0, 3),
+                "Rushing Yards": (10, 50),
+            },
+            "Running Back": {
+                "Rushing Yards": (50, 200),
+                "Rushing Touchdowns": (1, 3),
+                "Receiving Yards": (10, 50),
+                "Tackles": (0, 1),
+            },
+            "Wide Receiver": {
+                "Receiving Yards": (50, 200),
+                "Receiving Touchdowns": (1, 3),
+                "Rushing Yards": (0, 20),
+            },
+            "Linebacker": {
+                "Tackles": (5, 15),
+                "Sacks": (1, 5),
+                "Interceptions": (0, 2),
+            },
+            "Cornerback": {
+                "Tackles": (3, 10),
+                "Interceptions": (0, 3),
+                "Fumbles Recovered": (0, 1),
+            },
+            "Kicker": {
+                "Field Goals Made": (1, 5),
+                "Field Goals Attempted": (1, 7),
+                "Extra Points": (0, 5),
+            },
+        },
+        "Basketball": {
+            "Point Guard": {
+                "Points": (10, 30),
+                "Assists": (5, 15),
+                "Rebounds": (1, 5),
+                "Steals": (1, 3),
+                "Turnovers": (1, 5),
+            },
+            "Shooting Guard": {
+                "Points": (15, 35),
+                "Three-Point Percentage": (30, 50),
+                "Rebounds": (2, 6),
+            },
+            "Small Forward": {
+                "Points": (15, 25),
+                "Rebounds": (5, 10),
+                "Steals": (1, 3),
+                "Field Goal Percentage": (40, 60),
+            },
+            "Power Forward": {
+                "Points": (15, 25),
+                "Rebounds": (8, 15),
+                "Blocks": (1, 3),
+                "Turnovers": (0, 2),
+            },
+            "Center": {
+                "Points": (15, 25),
+                "Rebounds": (10, 20),
+                "Blocks": (1, 5),
+            },
+        },
+        "Baseball": {
+            "Pitcher": {
+                "Strikeouts (Pitcher)": (5, 15),
+                "ERA": (2.0, 5.0),
+                "Walks Allowed": (0, 5),
+                "Innings Pitched": (6, 9),
+            },
+            "Catcher": {
+                "Hits": (1, 3),
+                "RBIs": (0, 3),
+                "Errors": (0, 1),
+            },
+            "Infielder": {
+                "Hits": (1, 4),
+                "RBIs": (1, 5),
+                "Errors": (0, 2),
+                "Runs": (1, 3),
+            },
+            "Outfielder": {
+                "Hits": (1, 4),
+                "Home Runs": (0, 2),
+                "Runs": (1, 4),
+            },
+        },
+        "Soccer": {
+            "Forward": {
+                "Goals": (1, 3),
+                "Shots on Target": (3, 7),
+                "Assists": (0, 2),
+            },
+            "Midfielder": {
+                "Pass Accuracy": (75, 90),
+                "Tackles": (1, 5),
+                "Interceptions": (1, 3),
+                "Assists": (1, 3),
+            },
+            "Defender": {
+                "Tackles": (3, 8),
+                "Interceptions": (2, 5),
+                "Fouls Committed": (0, 3),
+            },
+            "Goalkeeper": {
+                "Saves": (3, 10),
+                "Clean Sheets": (0, 1),
+                "Pass Accuracy": (50, 80),
+            },
+        },
+        "Volleyball": {
+            "Setter": {
+                "Assists": (20, 50),
+                "Service Errors": (0, 3),
+                "Set Assists": (10, 30),
+            },
+            "Outside Hitter": {
+                "Kills": (10, 25),
+                "Blocks": (2, 6),
+                "Digs": (5, 15),
+            },
+            "Middle Blocker": {
+                "Blocks": (5, 15),
+                "Kills": (5, 10),
+            },
+            "Libero": {
+                "Digs": (15, 30),
+                "Reception Errors": (0, 2),
+            },
+        },
+    }
 
-            # Ensure no duplicate player is added to the same team
-            existing_player = next(
-                (p for p in team.players if p.first_name == first_name and p.last_name == last_name), None
+    for home_team in teams:
+        # Get season dates for the team's sport
+        sport_name = home_team.sport.name
+        season_start, season_end = sports_season_dates.get(sport_name, (None, None))
+
+        if not season_start or not season_end:
+            print(f"Season dates not found for sport: {sport_name}. Skipping...")
+            continue
+
+        total_weeks = (season_end - season_start).days // 7
+
+        # Filter potential opponents for the same sport
+        opponents = [
+            team for team in teams
+            if team.id != home_team.id and team.sport_id == home_team.sport_id
+        ]
+
+        # Shuffle opponents to ensure randomness
+        random.shuffle(opponents)
+
+        # Assign one opponent per week
+        for week in range(total_weeks):
+            if not opponents:
+                break  # No more opponents available
+
+            # Select an opponent for this week
+            away_team = opponents.pop(0)
+
+            # Calculate game date for this week
+            game_date = season_start + timedelta(weeks=week)
+            home_score = randint(0, 50)
+            away_score = randint(0, 50)
+
+            # Create the game
+            game = Game(
+                date=game_date,
+                home_team_id=home_team.id,
+                away_team_id=away_team.id,
+                home_score=home_score,
+                away_score=away_score
             )
-            if existing_player:
-                continue
-
-            # Create a new player with the correct sport_id
-            player = Player(
-                first_name=first_name,
-                last_name=last_name,
-                position=position,
-                sport_id=team.sport.id  # Assign the sport_id from the team's sport
-            )
-            db.session.add(player)
+            db.session.add(game)
             db.session.flush()
 
-            # Associate the player with the team
-            team.players.append(player)
-
-        db.session.commit()
-
-    print("All players generated and added to the database.")
-
-def seed_stats():
-    """
-    Seed the database with example stats for players in each game.
-    """
-    print("Seeding stats...")
-    games = Game.query.all()
-    players = Player.query.all()
-
-    for game in games:
-        for player in players:
-            # Create a stat object with randomized values for demonstration
-            stat = Stat(
-                player_id=player.id,
-                game_id=game.id,
-                stat_data={
-                    "points": randint(0, 30),
-                    "assists": randint(0, 10),
-                    "rebounds": randint(0, 15)
+            # Generate stats for the home team
+            position_stats = position_specific_stats.get(home_team.sport.name, {})
+            for player in home_team.players:
+                player_position = position_stats.get(player.position, {})
+                stats = {
+                    stat_name: randint(*ranges) if player_position else randint(0, 10)
+                    for stat_name, ranges in player_position.items()
                 }
-            )
-            db.session.add(stat)
+                player_stats = PlayerStats(
+                    player_id=player.id,
+                    game_id=game.id,
+                    stats=stats,
+                    team_id=home_team.id
+                )
+                db.session.add(player_stats)
+
+            # Generate stats for the away team
+            for player in away_team.players:
+                player_position = position_stats.get(player.position, {})
+                stats = {
+                    stat_name: randint(*ranges) if player_position else randint(0, 10)
+                    for stat_name, ranges in player_position.items()
+                }
+                player_stats = PlayerStats(
+                    player_id=player.id,
+                    game_id=game.id,
+                    stats=stats,
+                    team_id=away_team.id
+                )
+                db.session.add(player_stats)
 
     db.session.commit()
-    print("Stats seeded successfully.")
-
-
-def seed_player_quarter_stats():
-    """
-    Seed player quarter stats for all games and players in the database.
-    """
-    print("Seeding player quarter stats...")
-
-    games = Game.query.all()
-
-    for game in games:
-        # Retrieve teams for the game
-        home_team = game.home_team
-        away_team = game.away_team
-
-        # Iterate through home and away teams' players
-        for team in [home_team, away_team]:
-            for player in team.players:
-                # Retrieve sport-specific stats definitions
-                sport = team.sport
-                sport_stats = sport.stats_definitions if sport else []
-
-                # Generate stats for each quarter
-                for quarter in range(1, 5):
-                    quarter_stat = PlayerQuarterStats(
-                        player_id=player.id,
-                        game_id=game.id,
-                        quarter=quarter,
-                        sport_id=sport.id,  # Set the sport_id correctly
-                        stat_data={stat: randint(0, 10) for stat in sport_stats}
-                    )
-                    db.session.add(quarter_stat)
-
-    db.session.commit()
-    print("Player quarter stats seeded successfully.")
+    print("Games and stats seeded successfully.")
 
 
 
 def run_seed():
-    """
-    Master function to run all seeding steps in one app context.
-    """
-    with app.app_context():
+    """Master function to seed the database."""
+    with app.app_context():  # Use app context for all operations
         reset_database()
+        seed_sports()
+        seed_schools()
+        seed_teams_from_directory()
+        seed_players()
+        seed_games()
 
-        seed_sports_and_stats()
-        # 1. Load schools from data/schools/*.json
-        data_directory = 'data/schools'
-        load_schools_from_directory(data_directory)
-
-        # 2. Seed or upsert teams for existing schools from data/school_teams/*.json
-        seed_teams_for_existing_schools()
-
-        # 3. Generate a mock schedule for each team
-        generate_mock_schedule()
-
-        # 4. Generate players for each team
-        generate_players_for_teams()
-
-        seed_stats()
-
-        seed_player_quarter_stats()
 
 if __name__ == "__main__":
     run_seed()
