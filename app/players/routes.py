@@ -84,8 +84,9 @@ def player_profile(player_id):
     """Display a player's profile and aggregated stats."""
     player = Player.query.get_or_404(player_id)
     aggregated_stats = player.get_aggregated_stats()
+    sorted_player_stats = sorted(player.player_stats, key=lambda ps: ps.game.date)
 
-    return render_template('player_profile.html', player=player, stats=aggregated_stats)
+    return render_template('player_profile.html', player=player, stats=aggregated_stats, player_stats=sorted_player_stats)
 
 
 @players_bp.route('/players/add_player', methods=['GET', 'POST'])

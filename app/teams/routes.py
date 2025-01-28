@@ -67,39 +67,59 @@ def roster(team_id):
     return render_template('roster.html', team=team)
 
 
-@teams_bp.route('/schedule/<int:team_id>')
+@teams_bp.route('/schedule/<int:team_id>', methods=['GET'])
 def schedule(team_id):
+    # Fetch the selected team
     team = Team.query.get_or_404(team_id)
 
-    # Query only games for the specific team, grade level, and gender
-    games = Game.query.filter(
-        ((Game.home_team_id == team_id) | (Game.away_team_id == team_id)) &
-        (Game.home_team.has(grade_level=team.grade_level, gender=team.gender)) &
-        (Game.away_team.has(grade_level=team.grade_level, gender=team.gender))
-    ).all()
+    # Query games where the selected team is either home or away and ensure opponent matches gender and grade level
+    games = Game.query.join(Team, Game.home_team_id == Team.id) \
+        .filter((Game.home_team_id == team_id) | (Game.away_team_id == team_id)) \
+        .filter(Team.grade_level == team.grade_level, Team.gender == team.gender) \
+        .order_by(Game.date).all()
 
-    # Calculate wins and losses
-    wins = 0
-    losses = 0
+    schedule = []
     for game in games:
-        if game.home_team_id == team_id and game.home_score > game.away_score:
-            wins += 1
-        elif game.away_team_id == team_id and game.away_score > game.home_score:
-            wins += 1
-        else:
-            losses += 1
+        # Determine if the current team is home or away
+        is_home = game.home_team_id == team_id
+        opponent = game.away_team if is_home else game.home_team
 
-    record = {"wins": wins, "losses": losses}
+        # Ensure the opponent matches the gender and grade level of the current team
+        if opponent.grade_level != team.grade_level or opponent.gender != team.gender:
+            continue
 
-    # Pass the `games` SQLAlchemy objects directly to the template
+        # Determine the result of the game
+        result = "Win" if (
+            (is_home and game.home_score > game.away_score) or
+            (not is_home and game.away_score > game.home_score)
+        ) else "Loss" if (
+            (is_home and game.home_score < game.away_score) or
+            (not is_home and game.away_score < game.home_score)
+        ) else "Tie"
+
+        # Add the game to the schedule
+        schedule.append({
+            "date": game.date,
+            "opponent": opponent.school.school_name,
+            "opponent_level": f"{opponent.grade_level} {opponent.gender}",
+            "result": result,
+            "score": f"{game.home_score} - {game.away_score}" if is_home else f"{game.away_score} - {game.home_score}",
+            "id": game.id
+        })
+
+    # Calculate the team's record
+    record = {
+        "wins": sum(1 for g in schedule if g["result"] == "Win"),
+        "losses": sum(1 for g in schedule if g["result"] == "Loss"),
+        "ties": sum(1 for g in schedule if g["result"] == "Tie")
+    }
+
     return render_template(
-        'schedule.html',
+        "schedule.html",
         team=team,
-        schedule=games,  # Pass raw SQLAlchemy game objects
-        season={"start": team.sport.season_start, "end": team.sport.season_end},
+        schedule=schedule,
         record=record
     )
-
 
 @teams_bp.route('/team_stats/<int:team_id>', methods=['GET'])
 def team_stats(team_id):

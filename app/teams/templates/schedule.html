@@ -4,7 +4,7 @@
 <header class="bg-dark-body">
     <div>
         <img src="{{ url_for('schools.static', filename='images/all_schools_banner.webp') }}"
-             alt="{{ team.sport.name }} Banner"
+             alt="Team Schedule Banner"
              class="img-fluid"
              style="height: 170px; width: 100%; object-fit: cover;">
     </div>
@@ -13,13 +13,7 @@
 <main class="bg-dark-body" style="min-height: 100vh; padding-top: 10px;">
     <div class="container text-light">
         <h1 class="text-center">{{ team.school.school_name }} {{ team.sport.name }} Schedule</h1>
-        <p class="text-center">Season: {{ season.start.strftime("%B %d, %Y") }} - {{ season.end.strftime("%B %d, %Y") }}</p>
-
-        <!-- Team Record -->
-        <p class="text-center">Record:
-            <span>{{ record.wins }} Wins</span>,
-            <span>{{ record.losses }} Losses</span>
-        </p>
+        <h4 class="text-center">Record: {{ record.wins }} Wins - {{ record.losses }} Losses</h4>
 
         <table class="table table-dark table-striped mt-4">
             <thead>
@@ -29,51 +23,29 @@
                     <th>Opponent Level</th>
                     <th>Result</th>
                     <th>Score</th>
-                    <th>Game Details</th>
+                    <th>Actions</th> <!-- Add a new column for actions -->
                 </tr>
             </thead>
             <tbody>
                 {% for game in schedule %}
                 <tr>
                     <td>{{ game.date.strftime("%B %d, %Y") }}</td>
-                    <td>
-                        {% if game.home_team_id == team.id %}
-                            {{ game.away_team.school.school_name }}
-                        {% else %}
-                            {{ game.home_team.school.school_name }}
-                        {% endif %}
+                    <td>{{ game.opponent }}</td>
+                    <td>{{ game.opponent_level }}</td>
+                    <td style="{% if game.result == 'Win' %}color: green;{% elif game.result == 'Loss' %}color: red;{% else %}color: grey;{% endif %}">
+                        {{ game.result }}
                     </td>
+                    <td>{{ game.score }}</td>
                     <td>
-                        {% if game.home_team_id == team.id %}
-                            {{ game.away_team.grade_level }} {{ game.away_team.gender }}
-                        {% else %}
-                            {{ game.home_team.grade_level }} {{ game.home_team.gender }}
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if game.home_team_id == team.id and game.home_score > game.away_score or
-                              game.away_team_id == team.id and game.away_score > game.home_score %}
-                            <span class="text-success">Win</span>
-                        {% else %}
-                            <span class="text-danger">Loss</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if game.home_team_id == team.id %}
-                            {{ game.home_score }} - {{ game.away_score }}
-                        {% else %}
-                            {{ game.away_score }} - {{ game.home_score }}
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{{ url_for('teams.game_details', game_id=game.id) }}" class="btn btn-primary">
-                            View Details
+                        <a href="{{ url_for('teams.game_details', game_id=game.id) }}" class="btn btn-sm btn-primary">
+                            View Stats
                         </a>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+
     </div>
 </main>
 {% endblock %}

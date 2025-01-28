@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from datetime import timedelta, datetime
 from random import randint
 
@@ -20,9 +21,79 @@ def seed_sports():
     """Seed the database with predefined sports."""
     print("Seeding sports...")
     sports_stats = {
-        "Football": ["Passing Yards", "Rushing Yards", "Receiving Yards", "Tackles", "Sacks"],
-        "Basketball": ["Points", "Rebounds", "Assists", "Steals", "Blocks"],
-        "Baseball": ["Runs", "Hits", "Errors", "RBIs", "Strikeouts"],
+        "Football": [
+            "Passing Yards",  # Total passing yards
+            "Passing Touchdowns",  # Total passing touchdowns
+            "Interceptions Thrown",  # Total interceptions thrown
+            "Rushing Yards",  # Total rushing yards
+            "Rushing Touchdowns",  # Total rushing touchdowns
+            "Receiving Yards",  # Total receiving yards
+            "Receiving Touchdowns",  # Total receiving touchdowns
+            "Tackles",  # Total tackles
+            "Sacks",  # Total sacks
+            "Interceptions",  # Defensive interceptions
+            "Fumbles Recovered",  # Fumbles recovered
+            "Field Goals Made",  # Kicking field goals made
+            "Field Goals Attempted"  # Kicking field goals attempted
+        ],
+        "Basketball": [
+            "Points",  # Total points scored
+            "Rebounds",  # Total rebounds (offensive and defensive)
+            "Assists",  # Total assists
+            "Steals",  # Total steals
+            "Blocks",  # Total blocks
+            "Turnovers",  # Total turnovers
+            "Field Goal Percentage",  # Shooting accuracy from the field
+            "Three-Point Percentage",  # Shooting accuracy for three-pointers
+            "Free Throw Percentage",  # Shooting accuracy for free throws
+            "Minutes Played",  # Total minutes played
+            "Personal Fouls"  # Number of fouls committed
+        ],
+        "Baseball": [
+            "Runs",  # Total runs scored
+            "Hits",  # Total hits
+            "Home Runs",  # Total home runs
+            "RBIs",  # Runs batted in
+            "Stolen Bases",  # Total stolen bases
+            "Caught Stealing",  # Number of times caught stealing
+            "Batting Average",  # Player's batting average
+            "On-Base Percentage",  # On-base percentage
+            "Slugging Percentage",  # Slugging percentage
+            "Errors",  # Number of fielding errors
+            "Strikeouts (Pitcher)",  # Strikeouts by pitchers
+            "Walks Allowed",  # Walks allowed by pitchers
+            "ERA",  # Earned run average (pitchers)
+            "Innings Pitched"  # Innings pitched (pitchers)
+        ],
+        "Soccer": [
+            "Goals",  # Total goals scored
+            "Assists",  # Total assists
+            "Shots",  # Total shots taken
+            "Shots on Target",  # Total shots on target
+            "Passes Completed",  # Total successful passes
+            "Pass Accuracy",  # Pass accuracy percentage
+            "Tackles",  # Total tackles made
+            "Interceptions",  # Total interceptions
+            "Fouls Committed",  # Total fouls committed
+            "Fouls Won",  # Total fouls won
+            "Yellow Cards",  # Total yellow cards received
+            "Red Cards",  # Total red cards received
+            "Saves",  # Goalkeeper saves
+            "Clean Sheets"  # Goalkeeper clean sheets
+        ],
+        "Volleyball": [
+            "Kills",  # Total kills (successful attacks)
+            "Assists",  # Total assists
+            "Digs",  # Total digs (defensive saves)
+            "Blocks",  # Total blocks
+            "Aces",  # Total service aces
+            "Service Errors",  # Total service errors
+            "Hitting Percentage",  # Hitting accuracy percentage
+            "Set Assists",  # Total assists as a setter
+            "Reception Errors",  # Errors on receiving serves
+            "Serve Percentage",  # Serve success rate
+            "Total Points"  # Total points contributed
+        ]
     }
 
     season_dates = {
@@ -127,49 +198,266 @@ def seed_teams_from_directory():
 
 
 def seed_players():
-    """Seed players for each team."""
+    """Seed players for each team with realistic position distributions."""
     print("Seeding players...")
     fake = Faker()
     teams = Team.query.all()
 
+    # Define realistic player distributions for each sport
+    sport_position_distributions = {
+        "Football": {
+            "Quarterback": 2,
+            "Running Back": 4,
+            "Wide Receiver": 5,
+            "Linebacker": 6,
+            "Cornerback": 4,
+            "Safety": 4,
+            "Tight End": 3,
+            "Offensive Lineman": 10,
+            "Defensive Lineman": 8,
+            "Kicker": 2
+        },
+        "Basketball": {
+            "Point Guard": 3,
+            "Shooting Guard": 3,
+            "Small Forward": 3,
+            "Power Forward": 3,
+            "Center": 3
+        },
+        "Baseball": {
+            "Pitcher": 5,
+            "Catcher": 2,
+            "First Baseman": 2,
+            "Second Baseman": 2,
+            "Shortstop": 2,
+            "Third Baseman": 2,
+            "Left Fielder": 3,
+            "Center Fielder": 3,
+            "Right Fielder": 3
+        },
+        "Soccer": {
+            "Goalkeeper": 2,
+            "Defender": 8,
+            "Midfielder": 8,
+            "Forward": 4
+        },
+        "Volleyball": {
+            "Setter": 2,
+            "Outside Hitter": 4,
+            "Opposite Hitter": 3,
+            "Middle Blocker": 3,
+            "Libero": 2,
+            "Defensive Specialist": 2
+        },
+        "Cross Country": {
+            "Runner": 8
+        },
+        # Add more sports and their distributions as needed
+    }
+
     for team in teams:
-        positions = team.sport.stats_definitions
-        for _ in range(15):  # Create 15 players per team
-            # Generate names based on team gender
-            if team.gender.lower() == "boys":
-                first_name = fake.first_name_male()
-            elif team.gender.lower() == "girls":
-                first_name = fake.first_name_female()
-            else:
-                first_name = fake.first_name()
+        # Get position distribution for the sport or fallback to a default
+        position_distribution = sport_position_distributions.get(team.sport.name, {"Player": 15})
 
-            last_name = fake.last_name()
+        for position, count in position_distribution.items():
+            for _ in range(count):
+                # Generate names based on team gender
+                if team.gender.lower() == "boys":
+                    first_name = fake.first_name_male()
+                elif team.gender.lower() == "girls":
+                    first_name = fake.first_name_female()
+                else:
+                    first_name = fake.first_name()
 
-            player = Player(
-                first_name=first_name,
-                last_name=last_name,
-                position=fake.random_element(positions),
-                team_id=team.id,
-            )
-            db.session.add(player)
+                last_name = fake.last_name()
+
+                player = Player(
+                    first_name=first_name,
+                    last_name=last_name,
+                    position=position,
+                    team_id=team.id,
+                )
+                db.session.add(player)
 
     db.session.commit()
     print("Players seeded successfully.")
-
 
 def seed_games():
     """Generate games and associated stats."""
     print("Seeding games...")
     teams = Team.query.all()
-    season_start = datetime.now()
-    season_end = season_start + timedelta(weeks=10)
-    fake = Faker()
+    sports_season_dates = {
+        sport.name: (sport.season_start, sport.season_end)
+        for sport in Sport.query.all()
+    }
+    # fake = Faker()
+    # total_weeks = 10
+    # total_weeks = (season_end - season_start).days // 7
+    position_specific_stats = {
+        "Football": {
+            "Quarterback": {
+                "Passing Yards": (200, 400),
+                "Passing Touchdowns": (2, 5),
+                "Interceptions Thrown": (0, 3),
+                "Rushing Yards": (10, 50),
+            },
+            "Running Back": {
+                "Rushing Yards": (50, 200),
+                "Rushing Touchdowns": (1, 3),
+                "Receiving Yards": (10, 50),
+                "Tackles": (0, 1),
+            },
+            "Wide Receiver": {
+                "Receiving Yards": (50, 200),
+                "Receiving Touchdowns": (1, 3),
+                "Rushing Yards": (0, 20),
+            },
+            "Linebacker": {
+                "Tackles": (5, 15),
+                "Sacks": (1, 5),
+                "Interceptions": (0, 2),
+            },
+            "Cornerback": {
+                "Tackles": (3, 10),
+                "Interceptions": (0, 3),
+                "Fumbles Recovered": (0, 1),
+            },
+            "Kicker": {
+                "Field Goals Made": (1, 5),
+                "Field Goals Attempted": (1, 7),
+                "Extra Points": (0, 5),
+            },
+        },
+        "Basketball": {
+            "Point Guard": {
+                "Points": (10, 30),
+                "Assists": (5, 15),
+                "Rebounds": (1, 5),
+                "Steals": (1, 3),
+                "Turnovers": (1, 5),
+            },
+            "Shooting Guard": {
+                "Points": (15, 35),
+                "Three-Point Percentage": (30, 50),
+                "Rebounds": (2, 6),
+            },
+            "Small Forward": {
+                "Points": (15, 25),
+                "Rebounds": (5, 10),
+                "Steals": (1, 3),
+                "Field Goal Percentage": (40, 60),
+            },
+            "Power Forward": {
+                "Points": (15, 25),
+                "Rebounds": (8, 15),
+                "Blocks": (1, 3),
+                "Turnovers": (0, 2),
+            },
+            "Center": {
+                "Points": (15, 25),
+                "Rebounds": (10, 20),
+                "Blocks": (1, 5),
+            },
+        },
+        "Baseball": {
+            "Pitcher": {
+                "Strikeouts (Pitcher)": (5, 15),
+                "ERA": (2.0, 5.0),
+                "Walks Allowed": (0, 5),
+                "Innings Pitched": (6, 9),
+            },
+            "Catcher": {
+                "Hits": (1, 3),
+                "RBIs": (0, 3),
+                "Errors": (0, 1),
+            },
+            "Infielder": {
+                "Hits": (1, 4),
+                "RBIs": (1, 5),
+                "Errors": (0, 2),
+                "Runs": (1, 3),
+            },
+            "Outfielder": {
+                "Hits": (1, 4),
+                "Home Runs": (0, 2),
+                "Runs": (1, 4),
+            },
+        },
+        "Soccer": {
+            "Forward": {
+                "Goals": (1, 3),
+                "Shots on Target": (3, 7),
+                "Assists": (0, 2),
+            },
+            "Midfielder": {
+                "Pass Accuracy": (75, 90),
+                "Tackles": (1, 5),
+                "Interceptions": (1, 3),
+                "Assists": (1, 3),
+            },
+            "Defender": {
+                "Tackles": (3, 8),
+                "Interceptions": (2, 5),
+                "Fouls Committed": (0, 3),
+            },
+            "Goalkeeper": {
+                "Saves": (3, 10),
+                "Clean Sheets": (0, 1),
+                "Pass Accuracy": (50, 80),
+            },
+        },
+        "Volleyball": {
+            "Setter": {
+                "Assists": (20, 50),
+                "Service Errors": (0, 3),
+                "Set Assists": (10, 30),
+            },
+            "Outside Hitter": {
+                "Kills": (10, 25),
+                "Blocks": (2, 6),
+                "Digs": (5, 15),
+            },
+            "Middle Blocker": {
+                "Blocks": (5, 15),
+                "Kills": (5, 10),
+            },
+            "Libero": {
+                "Digs": (15, 30),
+                "Reception Errors": (0, 2),
+            },
+        },
+    }
 
     for home_team in teams:
-        opponent_teams = Team.query.filter(Team.id != home_team.id, Team.sport_id == home_team.sport_id).all()
+        # Get season dates for the team's sport
+        sport_name = home_team.sport.name
+        season_start, season_end = sports_season_dates.get(sport_name, (None, None))
 
-        for away_team in opponent_teams:
-            game_date = season_start + timedelta(days=randint(0, (season_end - season_start).days))
+        if not season_start or not season_end:
+            print(f"Season dates not found for sport: {sport_name}. Skipping...")
+            continue
+
+        total_weeks = (season_end - season_start).days // 7
+
+        # Filter potential opponents for the same sport
+        opponents = [
+            team for team in teams
+            if team.id != home_team.id and team.sport_id == home_team.sport_id
+        ]
+
+        # Shuffle opponents to ensure randomness
+        random.shuffle(opponents)
+
+        # Assign one opponent per week
+        for week in range(total_weeks):
+            if not opponents:
+                break  # No more opponents available
+
+            # Select an opponent for this week
+            away_team = opponents.pop(0)
+
+            # Calculate game date for this week
+            game_date = season_start + timedelta(weeks=week)
             home_score = randint(0, 50)
             away_score = randint(0, 50)
 
@@ -184,27 +472,41 @@ def seed_games():
             db.session.add(game)
             db.session.flush()
 
-            # Generate player stats for the game
+            # Generate stats for the home team
+            position_stats = position_specific_stats.get(home_team.sport.name, {})
             for player in home_team.players:
+                player_position = position_stats.get(player.position, {})
                 stats = {
-                    "Passing Yards": randint(0, 300),
-                    "Tackles": randint(0, 15),
-                    "Rushing Yards": randint(0, 200)
+                    stat_name: randint(*ranges) if player_position else randint(0, 10)
+                    for stat_name, ranges in player_position.items()
                 }
-                player_stats = PlayerStats(player_id=player.id, game_id=game.id, stats=stats, team_id=game.home_team_id)
+                player_stats = PlayerStats(
+                    player_id=player.id,
+                    game_id=game.id,
+                    stats=stats,
+                    team_id=home_team.id
+                )
                 db.session.add(player_stats)
 
+            # Generate stats for the away team
             for player in away_team.players:
+                player_position = position_stats.get(player.position, {})
                 stats = {
-                    "Passing Yards": randint(0, 300),
-                    "Tackles": randint(0, 15),
-                    "Rushing Yards": randint(0, 200)
+                    stat_name: randint(*ranges) if player_position else randint(0, 10)
+                    for stat_name, ranges in player_position.items()
                 }
-                player_stats = PlayerStats(player_id=player.id, game_id=game.id, stats=stats, team_id=game.away_team_id)
+                player_stats = PlayerStats(
+                    player_id=player.id,
+                    game_id=game.id,
+                    stats=stats,
+                    team_id=away_team.id
+                )
                 db.session.add(player_stats)
 
     db.session.commit()
     print("Games and stats seeded successfully.")
+
+
 
 def run_seed():
     """Master function to seed the database."""
